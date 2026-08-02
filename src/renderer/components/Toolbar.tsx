@@ -1,0 +1,64 @@
+import { useDocumentStore } from '../store/documentStore'
+import { useUiStore } from '../store/uiStore'
+
+export default function Toolbar(): JSX.Element {
+  const fileName = useDocumentStore((s) => s.fileName)
+  const isLoading = useDocumentStore((s) => s.isLoading)
+  const error = useDocumentStore((s) => s.error)
+  const openFile = useDocumentStore((s) => s.openFile)
+
+  const zoom = useUiStore((s) => s.zoom)
+  const fitWidth = useUiStore((s) => s.fitWidth)
+  const zoomIn = useUiStore((s) => s.zoomIn)
+  const zoomOut = useUiStore((s) => s.zoomOut)
+  const setFitWidth = useUiStore((s) => s.setFitWidth)
+
+  return (
+    <div className="flex h-12 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 text-sm">
+      <button
+        type="button"
+        onClick={() => void openFile()}
+        disabled={isLoading}
+        className="rounded bg-slate-800 px-3 py-1.5 text-white hover:bg-slate-700 disabled:opacity-50"
+      >
+        {isLoading ? 'Opening…' : 'Open'}
+      </button>
+
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={zoomOut}
+          className="h-7 w-7 rounded border border-slate-300 hover:bg-slate-100"
+          aria-label="Zoom out"
+        >
+          −
+        </button>
+        <span className="w-12 text-center text-slate-600">{Math.round(zoom * 100)}%</span>
+        <button
+          type="button"
+          onClick={zoomIn}
+          className="h-7 w-7 rounded border border-slate-300 hover:bg-slate-100"
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setFitWidth(!fitWidth)}
+        className={`rounded border px-2 py-1 ${
+          fitWidth
+            ? 'border-slate-800 bg-slate-800 text-white'
+            : 'border-slate-300 text-slate-600 hover:bg-slate-100'
+        }`}
+      >
+        Fit width
+      </button>
+
+      <span className="flex-1 truncate text-slate-500">{fileName ?? 'No file open'}</span>
+
+      {error && <span className="text-red-600">{error}</span>}
+    </div>
+  )
+}
