@@ -4,8 +4,12 @@ import { useUiStore } from '../store/uiStore'
 export default function Toolbar(): JSX.Element {
   const fileName = useDocumentStore((s) => s.fileName)
   const isLoading = useDocumentStore((s) => s.isLoading)
+  const isSaving = useDocumentStore((s) => s.isSaving)
+  const isDirty = useDocumentStore((s) => s.isDirty)
   const error = useDocumentStore((s) => s.error)
   const openFile = useDocumentStore((s) => s.openFile)
+  const save = useDocumentStore((s) => s.save)
+  const saveAs = useDocumentStore((s) => s.saveAs)
 
   const zoom = useUiStore((s) => s.zoom)
   const fitWidth = useUiStore((s) => s.fitWidth)
@@ -24,6 +28,24 @@ export default function Toolbar(): JSX.Element {
         className="rounded bg-slate-800 px-3 py-1.5 text-white hover:bg-slate-700 disabled:opacity-50"
       >
         {isLoading ? 'Opening…' : 'Open'}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => void save()}
+        disabled={!fileName || isLoading || isSaving}
+        className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+      >
+        {isSaving ? 'Saving…' : 'Save'}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => void saveAs()}
+        disabled={!fileName || isLoading || isSaving}
+        className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+      >
+        Save As
       </button>
 
       <div className="flex items-center gap-1">
@@ -71,7 +93,10 @@ export default function Toolbar(): JSX.Element {
         Text
       </button>
 
-      <span className="flex-1 truncate text-slate-500">{fileName ?? 'No file open'}</span>
+      <span className="flex-1 truncate text-slate-500">
+        {fileName ?? 'No file open'}
+        {isDirty && <span className="text-slate-800"> •</span>}
+      </span>
 
       {error && <span className="text-red-600">{error}</span>}
     </div>

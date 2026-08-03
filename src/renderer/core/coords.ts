@@ -243,3 +243,78 @@ export function konvaTransformToObjectRect(
     rotation: snapshot.rotation
   }
 }
+
+/**
+ * Degrees to pass as pdf-lib's drawText `rotate: degrees(...)` so an object
+ * authored with BaseObject.rotation (clockwise, Konva convention — see
+ * TextObject.tsx, which sets no offsetX/offsetY so Konva pivots a node
+ * around its own x,y) reappears at that same visual angle once a PDF viewer
+ * re-applies the page's own /Rotate.
+ *
+ * Derivation: viewport space = R(pageRotation) applied to the page's raw
+ * (pre-/Rotate) content-stream space — a pure rotation using the same
+ * (cos,sin,-sin,cos) matrix form Konva itself uses (verified against
+ * viewportPointToRaw's rotation-90 case, which is exactly that matrix).
+ * Rotations of the same convention compose additively, so an object drawn
+ * at viewport-space angle `objectRotationDeg` corresponds to raw-space angle
+ * `objectRotationDeg - pageRotation`. Raw space (y-down) -> true PDF space
+ * (y-up) is a REFLECTION, not a rotation (see textBaselineOrigin's final
+ * `cropBox.height - y` flip) — reflections invert the handedness of any
+ * angle composed with them, so the angle pdf-lib actually needs is negated:
+ * pageRotation - objectRotationDeg.
+ *
+ * Sanity check: pageRotation=0 reduces to -objectRotationDeg, matching the
+ * well-known pdf-lib fact that a visually-clockwise on-screen rotation needs
+ * a NEGATIVE degrees() value (pdf-lib's rotate is authored in PDF's own
+ * y-up space, where positive angles read as counter-clockwise).
+ */
+export function objectRotationToDrawRotation(objectRotationDeg: number, pageRotation: PageRotation): number {
+  return pageRotation - objectRotationDeg
+}
+
+/**
+ * Maps a point expressed as an offset from an object's UNROTATED top-left
+ * corner (viewport space, already in points — e.g. {x:0,y:ascentPt} for a
+ * left-aligned single line's baseline, {x:alignOffset,y:ascentPt+i*lineHeightPt}
+ * for line i of a wrapped/aligned paragraph) into the raw-PDF-space {x,y}
+ * pdf-lib's drawText wants for THAT point, when drawn with
+ * `rotate: degrees(objectRotationToDrawRotation(objectRotationDeg, pageRotation))`.
+ *
+ * Why this can't just reuse textBaselineOrigin directly: pdf-lib's drawText
+ * pivots its rotation around the (x,y) point it's given (verified from
+ * pdf-lib's operators.ts — it sets the PDF text matrix
+ * Tm = [cos,sin,-sin,cos,x,y], so local text-space (0,0) maps straight to
+ * (x,y) regardless of angle) — i.e. it pivots around the BASELINE ORIGIN.
+ * Konva pivots around the box's TOP-LEFT corner instead. Whenever
+ * localOffset != {0,0} these are different points, so naively rotating
+ * around the top-left (as textBaselineOrigin's page-rotation-only math
+ * does) would rotate the text around the wrong pivot. This function instead
+ * finds where the box's own top-left corner lands under page rotation alone
+ * (via textBaselineOrigin with ascentPt=0 — the top-left is invariant to the
+ * object's OWN rotation, since that rotation is defined around this exact
+ * point), then adds localOffset rotated by the composed draw angle.
+ *
+ * Cross-checked two ways: (1) algebraically equivalent to "rotate localOffset
+ * by objectRotationDeg around top-left to get the true viewport point, then
+ * map that point through the existing page-rotation-only machinery" — a
+ * simpler-to-state framing that produces the identical formula; (2) hand
+ * traced for pageRotation=90, objectRotationDeg=30, topLeft=(72,72),
+ * localOffset={0,10}: pivot=(72,72), theta_pdf=60deg, giving (80.660, 67.000).
+ */
+export function rotatedObjectPoint(
+  topLeft: Point,
+  localOffset: Point,
+  objectRotationDeg: number,
+  cropBox: CropBox,
+  pageRotation: PageRotation
+): Point {
+  const pivot = textBaselineOrigin(topLeft, 0, cropBox, pageRotation)
+  const drawRotationRad = (objectRotationToDrawRotation(objectRotationDeg, pageRotation) * Math.PI) / 180
+  const cos = Math.cos(drawRotationRad)
+  const sin = Math.sin(drawRotationRad)
+
+  return {
+    x: pivot.x + localOffset.x * cos + localOffset.y * sin,
+    y: pivot.y + localOffset.x * sin - localOffset.y * cos
+  }
+}

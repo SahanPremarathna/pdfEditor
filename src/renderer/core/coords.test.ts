@@ -6,6 +6,8 @@ import {
   MIN_TEXT_HEIGHT_PT,
   MIN_TEXT_WIDTH_PT,
   normalizeRotation,
+  objectRotationToDrawRotation,
+  rotatedObjectPoint,
   type KonvaTransformSnapshot,
   type PageRotation,
   ptToPx,
@@ -209,5 +211,70 @@ describe('konvaTransformToObjectRect', () => {
     const result = konvaTransformToObjectRect(flipped, 1)
     expect(result.width).toBe(MIN_TEXT_WIDTH_PT)
     expect(result.height).toBe(MIN_TEXT_HEIGHT_PT)
+  })
+})
+
+describe('objectRotationToDrawRotation', () => {
+  it('negates the object rotation when the page itself is unrotated (the well-known pdf-lib clockwise-needs-negative-degrees fact)', () => {
+    expect(objectRotationToDrawRotation(30, 0)).toBe(-30)
+    expect(objectRotationToDrawRotation(0, 0)).toBe(0)
+  })
+
+  it('is not a no-op for an upright object on a rotated page — the page rotation alone still contributes', () => {
+    expect(objectRotationToDrawRotation(0, 90)).toBe(90)
+  })
+
+  it('composes both contributions', () => {
+    expect(objectRotationToDrawRotation(30, 90)).toBe(60)
+  })
+})
+
+describe('rotatedObjectPoint', () => {
+  it('matches the hand-traced worked example: A4, /Rotate 90, object rotated 30deg', () => {
+    const a4CropBox: Rect = { x: 0, y: 0, width: 595.28, height: 841.89 }
+    const result = rotatedObjectPoint({ x: 72, y: 72 }, { x: 0, y: 10 }, 30, a4CropBox, 90)
+    expect(result.x).toBeCloseTo(80.660, 3)
+    expect(result.y).toBeCloseTo(67.0, 3)
+  })
+
+  it('reduces to plain textBaselineOrigin when the object has no rotation and the page is unrotated', () => {
+    const localOffset = { x: 0, y: 8.4 }
+    const result = rotatedObjectPoint({ x: 72, y: 72 }, localOffset, 0, cropBox, 0)
+    const expected = textBaselineOrigin({ x: 72, y: 72 }, 8.4, cropBox, 0)
+    expect(result.x).toBeCloseTo(expected.x, 9)
+    expect(result.y).toBeCloseTo(expected.y, 9)
+  })
+
+  it('the box top-left corner itself (localOffset {0,0}) is invariant to object rotation — only page rotation moves it', () => {
+    const topLeft = { x: 72, y: 72 }
+    const zeroOffset = { x: 0, y: 0 }
+    const atRotation0 = rotatedObjectPoint(topLeft, zeroOffset, 0, offsetCropBox, 90)
+    const atRotation45 = rotatedObjectPoint(topLeft, zeroOffset, 45, offsetCropBox, 90)
+    expect(atRotation45.x).toBeCloseTo(atRotation0.x, 9)
+    expect(atRotation45.y).toBeCloseTo(atRotation0.y, 9)
+  })
+
+  it('agrees with the equivalent "rotate the offset around top-left in viewport space first" framing', () => {
+    // independent formulation: compute the true viewport-space point by rotating
+    // localOffset around topLeft using Konva's own (cos,sin,-sin,cos) convention,
+    // then map that point through the existing page-rotation-only machinery
+    // (textBaselineOrigin with ascentPt=0 acts as a generic viewport-point-to-PDF mapper).
+    const topLeft = { x: 72, y: 72 }
+    const localOffset = { x: 5, y: 12 }
+    const objectRotationDeg = 40
+    const rotation: PageRotation = 90
+
+    const rad = (objectRotationDeg * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const viewportPoint = {
+      x: topLeft.x + localOffset.x * cos - localOffset.y * sin,
+      y: topLeft.y + localOffset.x * sin + localOffset.y * cos
+    }
+    const expected = textBaselineOrigin(viewportPoint, 0, offsetCropBox, rotation)
+
+    const result = rotatedObjectPoint(topLeft, localOffset, objectRotationDeg, offsetCropBox, rotation)
+    expect(result.x).toBeCloseTo(expected.x, 9)
+    expect(result.y).toBeCloseTo(expected.y, 9)
   })
 })

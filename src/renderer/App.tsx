@@ -2,9 +2,11 @@ import PageList from './components/PageList'
 import PropertiesPanel from './components/PropertiesPanel'
 import Toolbar from './components/Toolbar'
 import { useDeleteSelectedObject } from './hooks/useDeleteSelectedObject'
+import { useSaveShortcut } from './hooks/useSaveShortcut'
 
 export default function App(): JSX.Element {
   useDeleteSelectedObject()
+  useSaveShortcut()
 
   return (
     <div className="flex h-screen w-screen flex-col bg-slate-100">

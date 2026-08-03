@@ -4,7 +4,18 @@ import type { OpenDialogResult } from '../shared/types'
 
 const api = {
   openDialog: (): Promise<OpenDialogResult | null> => ipcRenderer.invoke(CH.OPEN_DIALOG),
-  readFile: (path: string): Promise<Uint8Array> => ipcRenderer.invoke(CH.READ_FILE, path)
+  readFile: (path: string): Promise<Uint8Array> => ipcRenderer.invoke(CH.READ_FILE, path),
+  save: (path: string, bytes: Uint8Array): Promise<void> => ipcRenderer.invoke(CH.SAVE, path, bytes),
+  saveAs: (defaultName: string, bytes: Uint8Array): Promise<string | null> =>
+    ipcRenderer.invoke(CH.SAVE_AS, defaultName, bytes),
+  notifyDirty: (isDirty: boolean): void => ipcRenderer.send(CH.DIRTY_CHANGED, isDirty),
+  onRequestSaveBeforeClose: (cb: () => void): (() => void) => {
+    const listener = (): void => cb()
+    ipcRenderer.on(CH.REQUEST_SAVE_BEFORE_CLOSE, listener)
+    return () => ipcRenderer.off(CH.REQUEST_SAVE_BEFORE_CLOSE, listener)
+  },
+  notifySaveBeforeCloseResult: (success: boolean): void =>
+    ipcRenderer.send(CH.SAVE_BEFORE_CLOSE_RESULT, success)
 }
 
 contextBridge.exposeInMainWorld('api', api)
