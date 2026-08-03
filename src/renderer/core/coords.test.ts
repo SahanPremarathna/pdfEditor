@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   baselineOriginToTopLeft,
   fromPdfSpace,
+  konvaTransformToObjectRect,
+  MIN_TEXT_HEIGHT_PT,
+  MIN_TEXT_WIDTH_PT,
   normalizeRotation,
+  type KonvaTransformSnapshot,
   type PageRotation,
   ptToPx,
   pxToPt,
@@ -155,4 +159,55 @@ describe('textBaselineOrigin', () => {
       expect(back.y).toBeCloseTo(topLeft.y, 9)
     })
   }
+})
+
+describe('konvaTransformToObjectRect', () => {
+  const baseSnapshot: KonvaTransformSnapshot = {
+    x: 144,
+    y: 288,
+    width: 200,
+    height: 40,
+    scaleX: 1,
+    scaleY: 1,
+    rotation: 0
+  }
+
+  it('converts position/size to points at scale 1 with no resize', () => {
+    const result = konvaTransformToObjectRect(baseSnapshot, 1)
+    expect(result).toEqual({ x: 144, y: 288, width: 200, height: 40, rotation: 0 })
+  })
+
+  it('converts position/size to points at a non-1 scale', () => {
+    const result = konvaTransformToObjectRect(baseSnapshot, 2)
+    expect(result).toEqual({ x: 72, y: 144, width: 100, height: 20, rotation: 0 })
+  })
+
+  it('bakes scaleX/scaleY into the resulting width/height', () => {
+    const resized: KonvaTransformSnapshot = { ...baseSnapshot, scaleX: 1.5, scaleY: 2 }
+    const result = konvaTransformToObjectRect(resized, 1)
+    expect(result.width).toBeCloseTo(300, 9)
+    expect(result.height).toBeCloseTo(80, 9)
+  })
+
+  it('passes rotation through unchanged, no unit conversion', () => {
+    const rotated: KonvaTransformSnapshot = { ...baseSnapshot, rotation: 37.5 }
+    expect(konvaTransformToObjectRect(rotated, 1).rotation).toBe(37.5)
+  })
+
+  it('clamps width to MIN_TEXT_WIDTH_PT on a degenerate shrink', () => {
+    const tiny: KonvaTransformSnapshot = { ...baseSnapshot, scaleX: 0.001 }
+    expect(konvaTransformToObjectRect(tiny, 1).width).toBe(MIN_TEXT_WIDTH_PT)
+  })
+
+  it('clamps height to MIN_TEXT_HEIGHT_PT on a degenerate shrink', () => {
+    const tiny: KonvaTransformSnapshot = { ...baseSnapshot, scaleY: 0.001 }
+    expect(konvaTransformToObjectRect(tiny, 1).height).toBe(MIN_TEXT_HEIGHT_PT)
+  })
+
+  it('clamps on a negative scale (flipped resize)', () => {
+    const flipped: KonvaTransformSnapshot = { ...baseSnapshot, scaleX: -1, scaleY: -1 }
+    const result = konvaTransformToObjectRect(flipped, 1)
+    expect(result.width).toBe(MIN_TEXT_WIDTH_PT)
+    expect(result.height).toBe(MIN_TEXT_HEIGHT_PT)
+  })
 })

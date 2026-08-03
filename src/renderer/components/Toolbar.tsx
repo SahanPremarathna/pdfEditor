@@ -12,6 +12,8 @@ export default function Toolbar(): JSX.Element {
   const zoomIn = useUiStore((s) => s.zoomIn)
   const zoomOut = useUiStore((s) => s.zoomOut)
   const setFitWidth = useUiStore((s) => s.setFitWidth)
+  const activeTool = useUiStore((s) => s.activeTool)
+  const setActiveTool = useUiStore((s) => s.setActiveTool)
 
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 text-sm">
@@ -54,6 +56,19 @@ export default function Toolbar(): JSX.Element {
         }`}
       >
         Fit width
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setActiveTool(activeTool === 'text' ? 'select' : 'text')}
+        className={`rounded border px-2 py-1 ${
+          activeTool === 'text'
+            ? 'border-slate-800 bg-slate-800 text-white'
+            : 'border-slate-300 text-slate-600 hover:bg-slate-100'
+        }`}
+        aria-pressed={activeTool === 'text'}
+      >
+        Text
       </button>
 
       <span className="flex-1 truncate text-slate-500">{fileName ?? 'No file open'}</span>

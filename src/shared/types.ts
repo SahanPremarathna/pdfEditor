@@ -24,3 +24,45 @@ export interface OpenDialogResult {
   path: string
   bytes: Uint8Array
 }
+
+export type ObjectType =
+  | 'text'
+  | 'image'
+  | 'freehand'
+  | 'rect'
+  | 'ellipse'
+  | 'line'
+  | 'arrow'
+  | 'highlight'
+  | 'whiteout'
+  | 'signature'
+
+/** All geometry in PDF POINTS, origin TOP-LEFT of the page CropBox. */
+export interface BaseObject {
+  id: string
+  pageIndex: number
+  type: ObjectType
+  x: number
+  y: number
+  width: number
+  height: number
+  rotation: number // degrees clockwise
+  opacity: number // 0..1
+  z: number
+  locked: boolean
+}
+
+export interface TextObject extends BaseObject {
+  type: 'text'
+  text: string
+  fontFamily: string // key into renderer/core/fontFamilies.ts's on-screen CSS map
+  fontSize: number
+  color: string // #rrggbb
+  bold: boolean
+  italic: boolean
+  align: 'left' | 'center' | 'right'
+  lineHeight: number
+}
+
+/** Only TextObject exists as of Phase 3 — ImageObject/PathObject/ShapeObject join this union in Phase 5. */
+export type PdfObject = TextObject

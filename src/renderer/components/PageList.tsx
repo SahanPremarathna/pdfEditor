@@ -70,6 +70,7 @@ export default function PageList(): JSX.Element {
           key={page.index}
           pdfDoc={pdfDoc}
           pageNumber={page.index + 1}
+          pageIndex={page.index}
           widthPt={page.widthPt}
           heightPt={page.heightPt}
           scale={scale}

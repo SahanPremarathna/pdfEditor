@@ -197,3 +197,49 @@ export function baselineOriginToTopLeft(
   const rawY = cropBox.height - (baseline.y - cropBox.y) - ascentPt
   return rawPointToViewport({ x: rawX, y: rawY }, cropBox, rotation)
 }
+
+/**
+ * Raw end-of-transform values read off a Konva node (px, Stage-local — the
+ * on-screen viewport space, already rotation-baked-in per pdf.js, NOT raw PDF
+ * space). Konva bakes a Transformer resize into scaleX/scaleY rather than
+ * width/height, so both are needed to recover the resized dimensions.
+ */
+export interface KonvaTransformSnapshot {
+  x: number
+  y: number
+  width: number
+  height: number
+  scaleX: number
+  scaleY: number
+  rotation: number // degrees clockwise — same convention as BaseObject.rotation
+}
+
+export const MIN_TEXT_WIDTH_PT = 20
+export const MIN_TEXT_HEIGHT_PT = 10
+
+/**
+ * Converts a Konva node's raw end-of-transform snapshot (px, Stage-local
+ * viewport space) into the point-space {x,y,width,height,rotation} patch to
+ * store on the object. Clamps width/height to the min floor so a degenerate
+ * resize can't produce a zero/negative-size, unselectable object.
+ *
+ * The caller is still responsible for resetting node.scaleX(1)/scaleY(1) on
+ * the Konva node itself right after `transformend` — that's imperative Konva
+ * state this pure function has no access to; skipping it makes repeated
+ * transforms compound.
+ */
+export function konvaTransformToObjectRect(
+  snapshot: KonvaTransformSnapshot,
+  scale: number
+): { x: number; y: number; width: number; height: number; rotation: number } {
+  const widthPt = Math.max(MIN_TEXT_WIDTH_PT, pxToPt(snapshot.width * snapshot.scaleX, scale))
+  const heightPt = Math.max(MIN_TEXT_HEIGHT_PT, pxToPt(snapshot.height * snapshot.scaleY, scale))
+
+  return {
+    x: pxToPt(snapshot.x, scale),
+    y: pxToPt(snapshot.y, scale),
+    width: widthPt,
+    height: heightPt,
+    rotation: snapshot.rotation
+  }
+}
