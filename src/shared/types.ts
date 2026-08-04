@@ -64,5 +64,31 @@ export interface TextObject extends BaseObject {
   lineHeight: number
 }
 
-/** Only TextObject exists as of Phase 3 — ImageObject/PathObject/ShapeObject join this union in Phase 5. */
-export type PdfObject = TextObject
+export interface ImageObject extends BaseObject {
+  type: 'image'
+  dataUrl: string // in-memory only, never persisted outside the exported PDF
+  mime: 'image/png' | 'image/jpeg'
+}
+
+/**
+ * Freehand strokes, straight lines/arrows, and signatures all share this
+ * shape. `points` is one flat [x,y,x,y,...] array PER STROKE (points relative
+ * to x,y, in POINTS, top-left/y-down — same convention as everywhere else),
+ * so freehand/signature can capture multiple pen-lifts. `line`/`arrow` are
+ * just a single stroke with exactly one point pair per array.
+ */
+export interface PathObject extends BaseObject {
+  type: 'freehand' | 'line' | 'arrow' | 'signature'
+  points: number[][]
+  stroke: string // #rrggbb
+  strokeWidth: number
+}
+
+export interface ShapeObject extends BaseObject {
+  type: 'rect' | 'ellipse' | 'highlight' | 'whiteout'
+  fill: string | null // #rrggbb, null = stroke-only
+  stroke: string | null // #rrggbb, null = no border
+  strokeWidth: number
+}
+
+export type PdfObject = TextObject | ImageObject | PathObject | ShapeObject

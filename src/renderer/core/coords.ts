@@ -301,6 +301,18 @@ export function objectRotationToDrawRotation(objectRotationDeg: number, pageRota
  * traced for pageRotation=90, objectRotationDeg=30, topLeft=(72,72),
  * localOffset={0,10}: pivot=(72,72), theta_pdf=60deg, giving (80.660, 67.000).
  */
+/**
+ * Scales a PathObject's stroke arrays by a Konva Transformer's baked
+ * scaleX/scaleY (px-space, same convention as konvaTransformToObjectRect),
+ * so a resized freehand/line/arrow/signature keeps its point-space shape
+ * consistent with the resized width/height stored alongside it.
+ */
+export function scalePathPoints(points: number[][], scaleX: number, scaleY: number): number[][] {
+  return points.map((stroke) =>
+    stroke.map((value, i) => (i % 2 === 0 ? value * scaleX : value * scaleY))
+  )
+}
+
 export function rotatedObjectPoint(
   topLeft: Point,
   localOffset: Point,

@@ -1,31 +1,21 @@
-import { findObjectById } from '../core/objects'
+import { DEFAULT_SHAPE_FILL, DEFAULT_SHAPE_STROKE, findObjectById } from '../core/objects'
 import { ON_SCREEN_FONT_FAMILIES } from '../core/fontFamilies'
-import { useObjectStore } from '../store/objectStore'
+import { useObjectStore, type PdfObjectPatch } from '../store/objectStore'
 import type { OnScreenFontFamily } from '../core/fontFamilies'
+import type { ImageObject, PathObject, PdfObject, ShapeObject, TextObject } from '../../shared/types'
 
 const buttonBase = 'h-7 w-7 rounded border text-sm'
 const buttonInactive = 'border-slate-300 text-slate-600 hover:bg-slate-100'
 const buttonActive = 'border-slate-800 bg-slate-800 text-white'
 
-export default function PropertiesPanel(): JSX.Element | null {
-  const objectsByPage = useObjectStore((s) => s.objectsByPage)
-  const selectedId = useObjectStore((s) => s.selectedId)
-  const updateObject = useObjectStore((s) => s.updateObject)
-  const removeObject = useObjectStore((s) => s.removeObject)
-  const bringToFront = useObjectStore((s) => s.bringToFront)
-  const sendToBack = useObjectStore((s) => s.sendToBack)
-  const bringForward = useObjectStore((s) => s.bringForward)
-  const sendBackward = useObjectStore((s) => s.sendBackward)
+interface TypedPatchProps<T extends PdfObject> {
+  obj: T
+  patch: (p: PdfObjectPatch) => void
+}
 
-  const obj = selectedId ? findObjectById(objectsByPage, selectedId) : undefined
-  if (!obj) return null
-
-  const patch = (p: Parameters<typeof updateObject>[2]): void => updateObject(obj.pageIndex, obj.id, p)
-
+function TextProperties({ obj, patch }: TypedPatchProps<TextObject>): JSX.Element {
   return (
-    <div className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-200 bg-white p-3 text-sm">
-      <h2 className="font-semibold text-slate-700">Text properties</h2>
-
+    <>
       <label className="flex flex-col gap-1">
         <span className="text-xs text-slate-500">Font family</span>
         <select
@@ -94,6 +84,158 @@ export default function PropertiesPanel(): JSX.Element | null {
           </button>
         ))}
       </div>
+    </>
+  )
+}
+
+function ShapeProperties({ obj, patch }: TypedPatchProps<ShapeObject>): JSX.Element {
+  if (obj.type === 'whiteout') {
+    return (
+      <p className="rounded border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+        Whiteout covers content opaquely — this hides pixels, it does not remove them.
+      </p>
+    )
+  }
+
+  return (
+    <>
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={obj.fill !== null}
+          onChange={(e) => patch({ fill: e.target.checked ? DEFAULT_SHAPE_FILL : null })}
+        />
+        <span className="text-xs text-slate-500">Fill</span>
+        {obj.fill !== null && (
+          <input
+            type="color"
+            value={obj.fill}
+            onChange={(e) => patch({ fill: e.target.value })}
+            className="h-6 w-10 rounded border border-slate-300"
+          />
+        )}
+      </label>
+
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={obj.stroke !== null}
+          onChange={(e) => patch({ stroke: e.target.checked ? DEFAULT_SHAPE_STROKE : null })}
+        />
+        <span className="text-xs text-slate-500">Stroke</span>
+        {obj.stroke !== null && (
+          <input
+            type="color"
+            value={obj.stroke}
+            onChange={(e) => patch({ stroke: e.target.value })}
+            className="h-6 w-10 rounded border border-slate-300"
+          />
+        )}
+      </label>
+
+      {obj.stroke !== null && (
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-slate-500">Stroke width</span>
+          <input
+            type="number"
+            min={0}
+            value={obj.strokeWidth}
+            onChange={(e) => patch({ strokeWidth: Number(e.target.value) })}
+            className="rounded border border-slate-300 px-2 py-1"
+          />
+        </label>
+      )}
+    </>
+  )
+}
+
+function PathProperties({ obj, patch }: TypedPatchProps<PathObject>): JSX.Element {
+  return (
+    <>
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-slate-500">Stroke colour</span>
+        <input
+          type="color"
+          value={obj.stroke}
+          onChange={(e) => patch({ stroke: e.target.value })}
+          className="h-8 w-full rounded border border-slate-300"
+        />
+      </label>
+
+      <label className="flex flex-col gap-1">
+        <span className="text-xs text-slate-500">Stroke width</span>
+        <input
+          type="number"
+          min={0.5}
+          step={0.5}
+          value={obj.strokeWidth}
+          onChange={(e) => patch({ strokeWidth: Number(e.target.value) })}
+          className="rounded border border-slate-300 px-2 py-1"
+        />
+      </label>
+    </>
+  )
+}
+
+function ImageProperties(_props: TypedPatchProps<ImageObject>): JSX.Element | null {
+  return null
+}
+
+const OBJECT_TYPE_LABELS: Record<PdfObject['type'], string> = {
+  text: 'Text',
+  image: 'Image',
+  rect: 'Rectangle',
+  ellipse: 'Ellipse',
+  line: 'Line',
+  arrow: 'Arrow',
+  freehand: 'Freehand',
+  highlight: 'Highlight',
+  whiteout: 'Whiteout',
+  signature: 'Signature'
+}
+
+export default function PropertiesPanel(): JSX.Element | null {
+  const objectsByPage = useObjectStore((s) => s.objectsByPage)
+  const selectedId = useObjectStore((s) => s.selectedId)
+  const updateObject = useObjectStore((s) => s.updateObject)
+  const removeObject = useObjectStore((s) => s.removeObject)
+  const bringToFront = useObjectStore((s) => s.bringToFront)
+  const sendToBack = useObjectStore((s) => s.sendToBack)
+  const bringForward = useObjectStore((s) => s.bringForward)
+  const sendBackward = useObjectStore((s) => s.sendBackward)
+
+  const obj = selectedId ? findObjectById(objectsByPage, selectedId) : undefined
+  if (!obj) return null
+
+  const patch = (p: PdfObjectPatch): void => updateObject(obj.pageIndex, obj.id, p)
+
+  let typeSpecific: JSX.Element | null
+  switch (obj.type) {
+    case 'text':
+      typeSpecific = <TextProperties obj={obj} patch={patch} />
+      break
+    case 'rect':
+    case 'ellipse':
+    case 'highlight':
+    case 'whiteout':
+      typeSpecific = <ShapeProperties obj={obj} patch={patch} />
+      break
+    case 'freehand':
+    case 'line':
+    case 'arrow':
+    case 'signature':
+      typeSpecific = <PathProperties obj={obj} patch={patch} />
+      break
+    case 'image':
+      typeSpecific = <ImageProperties obj={obj} patch={patch} />
+      break
+  }
+
+  return (
+    <div className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-200 bg-white p-3 text-sm">
+      <h2 className="font-semibold text-slate-700">{OBJECT_TYPE_LABELS[obj.type]} properties</h2>
+
+      {typeSpecific}
 
       <label className="flex flex-col gap-1">
         <span className="text-xs text-slate-500">Opacity ({Math.round(obj.opacity * 100)}%)</span>

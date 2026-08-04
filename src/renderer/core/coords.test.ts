@@ -8,6 +8,7 @@ import {
   normalizeRotation,
   objectRotationToDrawRotation,
   rotatedObjectPoint,
+  scalePathPoints,
   type KonvaTransformSnapshot,
   type PageRotation,
   ptToPx,
@@ -276,5 +277,35 @@ describe('rotatedObjectPoint', () => {
     const result = rotatedObjectPoint(topLeft, localOffset, objectRotationDeg, offsetCropBox, rotation)
     expect(result.x).toBeCloseTo(expected.x, 9)
     expect(result.y).toBeCloseTo(expected.y, 9)
+  })
+})
+
+describe('scalePathPoints', () => {
+  it('scales x and y coordinates independently across every stroke', () => {
+    const points = [
+      [0, 0, 10, 20],
+      [5, 5, 15, 25]
+    ]
+
+    const result = scalePathPoints(points, 2, 3)
+
+    expect(result).toEqual([
+      [0, 0, 20, 60],
+      [10, 15, 30, 75]
+    ])
+  })
+
+  it('does not mutate the input arrays', () => {
+    const points = [[1, 1, 2, 2]]
+    const original = points.map((stroke) => [...stroke])
+
+    scalePathPoints(points, 2, 2)
+
+    expect(points).toEqual(original)
+  })
+
+  it('is a no-op at scale 1', () => {
+    const points = [[3, 4, 5, 6]]
+    expect(scalePathPoints(points, 1, 1)).toEqual(points)
   })
 })

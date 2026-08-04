@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createTextObject, findObjectById } from './objects'
-import type { TextObject } from '../../shared/types'
+import { createImageObject, createPathObject, createShapeObject, createTextObject, findObjectById } from './objects'
+import type { ImageObject, PathObject, ShapeObject, TextObject } from '../../shared/types'
 
 describe('createTextObject', () => {
   it('builds a fully-defaulted TextObject at the given page/position/z', () => {
@@ -41,6 +41,102 @@ describe('createTextObject', () => {
   it('uses crypto.randomUUID() by default when no idFactory is given', () => {
     const obj = createTextObject(0, 0, 0, 0)
     expect(obj.id).toMatch(/^[0-9a-f-]{36}$/)
+  })
+})
+
+describe('createShapeObject', () => {
+  it('builds a rect with stroke-only defaults (no fill)', () => {
+    const obj = createShapeObject('rect', 0, 10, 20, 100, 50, 2, {}, () => 'id')
+
+    expect(obj).toEqual<ShapeObject>({
+      id: 'id',
+      pageIndex: 0,
+      type: 'rect',
+      x: 10,
+      y: 20,
+      width: 100,
+      height: 50,
+      rotation: 0,
+      opacity: 1,
+      z: 2,
+      locked: false,
+      fill: null,
+      stroke: '#1d4ed8',
+      strokeWidth: 2
+    })
+  })
+
+  it('builds a highlight with a fill, no stroke, and reduced default opacity', () => {
+    const obj = createShapeObject('highlight', 0, 0, 0, 10, 10, 0, {}, () => 'id')
+
+    expect(obj.fill).toBe('#fde047')
+    expect(obj.stroke).toBeNull()
+    expect(obj.opacity).toBe(0.4)
+  })
+
+  it('builds a whiteout with opaque white fill, no stroke, full opacity', () => {
+    const obj = createShapeObject('whiteout', 0, 0, 0, 10, 10, 0, {}, () => 'id')
+
+    expect(obj.fill).toBe('#ffffff')
+    expect(obj.stroke).toBeNull()
+    expect(obj.opacity).toBe(1)
+  })
+
+  it('applies overrides on top of type defaults', () => {
+    const obj = createShapeObject('rect', 0, 0, 0, 10, 10, 0, { fill: '#ff0000' }, () => 'id')
+    expect(obj.fill).toBe('#ff0000')
+  })
+})
+
+describe('createPathObject', () => {
+  it('builds a freehand path with the given points and default stroke', () => {
+    const points = [[0, 0, 5, 5, 10, 0]]
+    const obj = createPathObject('freehand', 1, 5, 5, 10, 10, points, 0, {}, () => 'id')
+
+    expect(obj).toEqual<PathObject>({
+      id: 'id',
+      pageIndex: 1,
+      type: 'freehand',
+      x: 5,
+      y: 5,
+      width: 10,
+      height: 10,
+      rotation: 0,
+      opacity: 1,
+      z: 0,
+      locked: false,
+      points,
+      stroke: '#111827',
+      strokeWidth: 2
+    })
+  })
+
+  it('builds a signature the same shape as freehand, just a different type tag', () => {
+    const obj = createPathObject('signature', 0, 0, 0, 20, 8, [[0, 0, 20, 8]], 0, {}, () => 'id')
+    expect(obj.type).toBe('signature')
+    expect(obj.points).toEqual([[0, 0, 20, 8]])
+  })
+})
+
+describe('createImageObject', () => {
+  it('builds an ImageObject from the given dataUrl/mime', () => {
+    const obj = createImageObject(0, 10, 10, 100, 80, 'data:image/png;base64,AAA', 'image/png', 1, {}, () => 'id')
+
+    expect(obj).toEqual<ImageObject>({
+      id: 'id',
+      pageIndex: 0,
+      type: 'image',
+      x: 10,
+      y: 10,
+      width: 100,
+      height: 80,
+      rotation: 0,
+      opacity: 1,
+      z: 1,
+      locked: false,
+      dataUrl: 'data:image/png;base64,AAA',
+      mime: 'image/png'
+    })
   })
 })
 

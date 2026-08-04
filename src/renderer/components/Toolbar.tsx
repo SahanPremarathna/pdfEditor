@@ -1,5 +1,18 @@
 import { useDocumentStore } from '../store/documentStore'
-import { useUiStore } from '../store/uiStore'
+import { useUiStore, type Tool } from '../store/uiStore'
+
+const TOOLS: { id: Tool; label: string }[] = [
+  { id: 'text', label: 'Text' },
+  { id: 'image', label: 'Image' },
+  { id: 'rect', label: 'Rect' },
+  { id: 'ellipse', label: 'Ellipse' },
+  { id: 'line', label: 'Line' },
+  { id: 'arrow', label: 'Arrow' },
+  { id: 'freehand', label: 'Freehand' },
+  { id: 'highlight', label: 'Highlight' },
+  { id: 'whiteout', label: 'Whiteout' },
+  { id: 'signature', label: 'Signature' }
+]
 
 export default function Toolbar(): JSX.Element {
   const fileName = useDocumentStore((s) => s.fileName)
@@ -80,18 +93,23 @@ export default function Toolbar(): JSX.Element {
         Fit width
       </button>
 
-      <button
-        type="button"
-        onClick={() => setActiveTool(activeTool === 'text' ? 'select' : 'text')}
-        className={`rounded border px-2 py-1 ${
-          activeTool === 'text'
-            ? 'border-slate-800 bg-slate-800 text-white'
-            : 'border-slate-300 text-slate-600 hover:bg-slate-100'
-        }`}
-        aria-pressed={activeTool === 'text'}
-      >
-        Text
-      </button>
+      <div className="flex flex-wrap items-center gap-1">
+        {TOOLS.map((tool) => (
+          <button
+            key={tool.id}
+            type="button"
+            onClick={() => setActiveTool(activeTool === tool.id ? 'select' : tool.id)}
+            className={`rounded border px-2 py-1 ${
+              activeTool === tool.id
+                ? 'border-slate-800 bg-slate-800 text-white'
+                : 'border-slate-300 text-slate-600 hover:bg-slate-100'
+            }`}
+            aria-pressed={activeTool === tool.id}
+          >
+            {tool.label}
+          </button>
+        ))}
+      </div>
 
       <span className="flex-1 truncate text-slate-500">
         {fileName ?? 'No file open'}

@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createTextObject } from '../core/objects'
 import { useObjectStore } from './objectStore'
+import type { PdfObject, TextObject } from '../../shared/types'
+
+const asText = (obj: PdfObject | undefined): TextObject | undefined => obj as TextObject | undefined
 
 const initialState = useObjectStore.getState()
 
@@ -29,8 +32,8 @@ describe('objectStore', () => {
     useObjectStore.getState().updateObject(0, 'a', { text: 'edited' })
 
     const page0 = useObjectStore.getState().objectsByPage[0]
-    expect(page0.find((o) => o.id === 'a')?.text).toBe('edited')
-    expect(page0.find((o) => o.id === 'b')?.text).toBe('')
+    expect(asText(page0.find((o) => o.id === 'a'))?.text).toBe('edited')
+    expect(asText(page0.find((o) => o.id === 'b'))?.text).toBe('')
   })
 
   it('updateObject is a no-op on a locked object', () => {
@@ -39,7 +42,7 @@ describe('objectStore', () => {
 
     useObjectStore.getState().updateObject(0, 'a', { text: 'should not apply' })
 
-    expect(useObjectStore.getState().objectsByPage[0][0].text).toBe('')
+    expect(asText(useObjectStore.getState().objectsByPage[0][0])?.text).toBe('')
   })
 
   it('removeObject removes the object and re-densifies remaining z values', () => {

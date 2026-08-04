@@ -1,20 +1,44 @@
 import { create } from 'zustand'
-import type { TextObject } from '../../shared/types'
+import type { BaseObject, ImageObject, PdfObject, TextObject } from '../../shared/types'
 import { densifyZ, reorderZ, type ZDirection } from '../core/zOrder'
 
-const EMPTY_PAGE: TextObject[] = []
+const EMPTY_PAGE: PdfObject[] = []
+
+/**
+ * `Partial<Omit<PdfObject, ...>>` would only keep BaseObject's shared keys
+ * (keyof of a union is the INTERSECTION of each member's keys), losing every
+ * type-specific field (text, fill, points, ...). Intersecting a Partial of
+ * each member's own extra fields instead has the same problem one level
+ * down: PathObject.stroke (string) and ShapeObject.stroke (string | null)
+ * share a name with different types, and intersecting two Partials collapses
+ * a shared field to the NARROWER common type — silently dropping `null`.
+ * Hand-listing every patchable field once, using the union of every type it
+ * takes across all four object types, avoids that trap.
+ */
+export interface PdfObjectPatch extends Partial<BaseObject> {
+  text?: string
+  fontFamily?: string
+  fontSize?: number
+  color?: string
+  bold?: boolean
+  italic?: boolean
+  align?: TextObject['align']
+  lineHeight?: number
+  dataUrl?: string
+  mime?: ImageObject['mime']
+  points?: number[][]
+  fill?: string | null
+  stroke?: string | null
+  strokeWidth?: number
+}
 
 interface ObjectState {
-  objectsByPage: Record<number, TextObject[]>
+  objectsByPage: Record<number, PdfObject[]>
   selectedId: string | null
   activeEditingId: string | null
 
-  addObject: (obj: TextObject) => void
-  updateObject: (
-    pageIndex: number,
-    id: string,
-    patch: Partial<Omit<TextObject, 'id' | 'pageIndex' | 'type'>>
-  ) => void
+  addObject: (obj: PdfObject) => void
+  updateObject: (pageIndex: number, id: string, patch: PdfObjectPatch) => void
   removeObject: (pageIndex: number, id: string) => void
 
   selectObject: (id: string | null) => void
@@ -28,11 +52,11 @@ interface ObjectState {
 }
 
 function applyZOrder(
-  objectsByPage: Record<number, TextObject[]>,
+  objectsByPage: Record<number, PdfObject[]>,
   pageIndex: number,
   id: string,
   direction: ZDirection
-): Record<number, TextObject[]> {
+): Record<number, PdfObject[]> {
   const objects = objectsByPage[pageIndex] ?? EMPTY_PAGE
   const reordered = reorderZ(objects, id, direction)
   if (reordered === objects) return objectsByPage
@@ -61,7 +85,11 @@ export const useObjectStore = create<ObjectState>((set) => ({
       return {
         objectsByPage: {
           ...state.objectsByPage,
-          [pageIndex]: existing.map((o) => (o.id === id ? { ...o, ...patch } : o))
+          // The merge always preserves `o.type` (patch never includes it),
+          // so the result is still a valid member of the original object's
+          // own union branch — just not something TS can prove structurally
+          // from a widened patch bag, hence the cast.
+          [pageIndex]: existing.map((o) => (o.id === id ? ({ ...o, ...patch } as PdfObject) : o))
         }
       }
     }),
@@ -100,4 +128,4 @@ export const useObjectStore = create<ObjectState>((set) => ({
 /** Stable empty-array reference for pages with no objects, so
  *  `useObjectStore(s => s.objectsByPage[pageIndex] ?? EMPTY_ARRAY)` doesn't
  *  create a new reference on every render for pages that have no objects. */
-export const EMPTY_ARRAY: readonly TextObject[] = EMPTY_PAGE
+export const EMPTY_ARRAY: readonly PdfObject[] = EMPTY_PAGE
