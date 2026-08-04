@@ -34,6 +34,10 @@ interface UiState {
    *  derive a target page from, so it falls back to this. */
   lastActivePageIndex: number
   signatureRequest: SignatureRequest | null
+  /** A one-shot "scroll the main viewport to this page" signal (e.g. from
+   *  clicking a thumbnail) — PageList consumes it and clears it back to null
+   *  right after scrolling, so it never fires again on its own. */
+  scrollToPageId: number | null
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -42,6 +46,8 @@ interface UiState {
   setLastActivePageIndex: (pageIndex: number) => void
   requestSignature: (pageIndex: number, x: number, y: number) => void
   clearSignatureRequest: () => void
+  requestScrollToPage: (pageIndex: number) => void
+  clearScrollToPage: () => void
 }
 
 const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
@@ -52,6 +58,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   activeTool: 'select',
   lastActivePageIndex: 0,
   signatureRequest: null,
+  scrollToPageId: null,
 
   setZoom: (zoom) => set({ zoom: clampZoom(zoom), fitWidth: false }),
   zoomIn: () => set({ zoom: clampZoom(get().zoom * ZOOM_STEP), fitWidth: false }),
@@ -60,5 +67,7 @@ export const useUiStore = create<UiState>((set, get) => ({
   setActiveTool: (tool) => set({ activeTool: tool }),
   setLastActivePageIndex: (pageIndex) => set({ lastActivePageIndex: pageIndex }),
   requestSignature: (pageIndex, x, y) => set({ signatureRequest: { pageIndex, x, y } }),
-  clearSignatureRequest: () => set({ signatureRequest: null })
+  clearSignatureRequest: () => set({ signatureRequest: null }),
+  requestScrollToPage: (pageIndex) => set({ scrollToPageId: pageIndex }),
+  clearScrollToPage: () => set({ scrollToPageId: null })
 }))

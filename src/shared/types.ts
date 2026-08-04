@@ -11,10 +11,20 @@ export interface Rect extends Point {
   height: number
 }
 
+/** Where a page's content actually comes from. */
+export type PageSource =
+  | { kind: 'original'; sourcePageNumber: number } // 1-indexed, into the open doc's own originalBytes/pdfDoc
+  | { kind: 'blank' }
+  | { kind: 'imported'; importId: string; sourcePageNumber: number } // importId keys into documentStore's importedDocs cache
+
 /** All geometry in PDF POINTS, origin TOP-LEFT of the page CropBox. */
 export interface PageMeta {
+  /** Stable id — NOT the array position. Assigned once per page (a monotonic
+   *  counter continuing past the original page count for blank/imported
+   *  pages) and never reused, even across reorder/delete/undo. */
   index: number
-  widthPt: number // CropBox width AFTER applying /Rotate
+  source: PageSource
+  widthPt: number // current effective size, already reflecting rotation's swap
   heightPt: number
   rotation: 0 | 90 | 180 | 270 // user-applied delta, not the original
   deleted: boolean

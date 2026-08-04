@@ -14,6 +14,7 @@ import type { TextItem } from 'pdfjs-dist/types/src/display/api'
 import { describe, expect, it } from 'vitest'
 import { objectRotationToDrawRotation, rotatedObjectPoint, type PageRotation } from './coords'
 import { exportPdf } from './exportPdf'
+import { identityPagesFor } from './exportPdf.testHelpers'
 import { createTextObject } from './objects'
 import type { Rect, TextObject } from '../../shared/types'
 
@@ -40,7 +41,7 @@ async function exportAndReadBack(
   page.setRotation(degrees(rotation))
   const sourceBytes = await sourceDoc.save()
 
-  const exportedBytes = await exportPdf(sourceBytes, { [obj.pageIndex]: [obj] })
+  const exportedBytes = await exportPdf(sourceBytes, { [obj.pageIndex]: [obj] }, identityPagesFor(sourceDoc), {})
 
   const readDoc = await getDocument({ data: exportedBytes, standardFontDataUrl }).promise
   const readPage = await readDoc.getPage(obj.pageIndex + 1)

@@ -1,5 +1,6 @@
 import './pdfWorker'
 import { getDocument, type PDFDocumentProxy, type RenderTask } from 'pdfjs-dist'
+import { normalizeRotation, type PageRotation } from './coords'
 
 export type { PDFDocumentProxy }
 
@@ -8,13 +9,20 @@ export async function loadDocument(bytes: Uint8Array): Promise<PDFDocumentProxy>
   return task.promise
 }
 
-/** Page size in CSS px at scale 1 — pdf.js bakes /Rotate into this, per spec §4. */
+/** Page size in CSS px at scale 1 — pdf.js bakes /Rotate into this, per spec §4.
+ *  `additionalRotationDeg` is a user-applied delta (PageMeta.rotation) ON TOP
+ *  of the page's own /Rotate — pdf.js's `rotation` option to getViewport
+ *  OVERRIDES the page's baked rotation rather than adding to it ("if omitted
+ *  it defaults to the page rotation", per pdf.js's own docs), so combining
+ *  the two means reading `page.rotate` first and adding the delta ourselves. */
 export async function getPageSize(
   doc: PDFDocumentProxy,
-  pageNumber: number
+  pageNumber: number,
+  additionalRotationDeg: PageRotation = 0
 ): Promise<{ width: number; height: number }> {
   const page = await doc.getPage(pageNumber)
-  const viewport = page.getViewport({ scale: 1 })
+  const rotation = normalizeRotation(page.rotate + additionalRotationDeg)
+  const viewport = page.getViewport({ scale: 1, rotation })
   return { width: viewport.width, height: viewport.height }
 }
 
@@ -39,12 +47,14 @@ export async function renderPageToCanvas(
   pageNumber: number,
   canvas: HTMLCanvasElement,
   scale: number,
-  shouldAbort?: () => boolean
+  shouldAbort?: () => boolean,
+  additionalRotationDeg: PageRotation = 0
 ): Promise<RenderHandle | null> {
   const page = await doc.getPage(pageNumber)
   if (shouldAbort?.()) return null
 
-  const viewport = page.getViewport({ scale })
+  const rotation = normalizeRotation(page.rotate + additionalRotationDeg)
+  const viewport = page.getViewport({ scale, rotation })
 
   canvas.width = Math.ceil(viewport.width)
   canvas.height = Math.ceil(viewport.height)

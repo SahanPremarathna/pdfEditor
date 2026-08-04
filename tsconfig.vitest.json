@@ -22,6 +22,7 @@
   },
   "include": [
     "src/renderer/**/*.test.ts",
+    "src/renderer/env.d.ts",
     "src/shared/**/*"
   ]
 }

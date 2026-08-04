@@ -6,7 +6,7 @@ import { Ellipse, Layer, Line, Rect, Stage, Transformer } from 'react-konva'
 import { pxToPt } from '../core/coords'
 import { fitWithinMaxDimension, readImageFile } from '../core/imageFiles'
 import { createImageObject, createPathObject, createShapeObject, createTextObject } from '../core/objects'
-import type { PDFDocumentProxy } from '../core/renderPdf'
+import type { ResolvedPageSource } from '../core/pageSources'
 import { renderPageToCanvas } from '../core/renderPdf'
 import { nextZ } from '../core/zOrder'
 import { EMPTY_ARRAY, useObjectStore } from '../store/objectStore'
@@ -19,9 +19,10 @@ import TextObjectView from './objects/TextObject'
 import type { PdfObject, TextObject } from '../../shared/types'
 
 interface PageCanvasProps {
-  pdfDoc: PDFDocumentProxy
-  pageNumber: number // 1-indexed, per pdf.js convention
-  pageIndex: number // 0-indexed, matches PageMeta.index and object.pageIndex
+  /** What to actually render — either a pdfjs doc+page number (original or
+   *  imported), or 'blank' for an inserted page with no pdfjs source at all. */
+  source: ResolvedPageSource
+  pageIndex: number // stable PageMeta.index, matches object.pageIndex — NOT array position
   widthPt: number
   heightPt: number
   scale: number // CSS px per PDF point
@@ -44,8 +45,7 @@ type Draft =
   | { kind: 'freehand'; points: number[] }
 
 export default function PageCanvas({
-  pdfDoc,
-  pageNumber,
+  source,
   pageIndex,
   widthPt,
   heightPt,
@@ -79,8 +79,13 @@ export default function PageCanvas({
   const sortedObjects = useMemo(() => [...objects].sort((a, b) => a.z - b.z), [objects])
   const editingObject = objects.find((o): o is TextObject => o.type === 'text' && o.id === activeEditingId)
 
+  const isBlank = source.kind === 'blank'
+  const sourcePdfDoc = source.kind === 'renderable' ? source.pdfDoc : null
+  const sourcePageNumber = source.kind === 'renderable' ? source.pageNumber : null
+  const sourceRotationDeg = source.kind === 'renderable' ? source.rotationDeg : 0
+
   useEffect(() => {
-    if (!active || !canvasRef.current) return undefined
+    if (!active || !canvasRef.current || !sourcePdfDoc || sourcePageNumber === null) return undefined
 
     const canvas = canvasRef.current
     const dpr = window.devicePixelRatio || 1
@@ -89,7 +94,7 @@ export default function PageCanvas({
     let cancelFn: (() => void) | null = null
     setError(null)
 
-    renderPageToCanvas(pdfDoc, pageNumber, canvas, scale * dpr, isStale)
+    renderPageToCanvas(sourcePdfDoc, sourcePageNumber, canvas, scale * dpr, isStale, sourceRotationDeg)
       .then((handle) => {
         if (!handle) return undefined // aborted before render() was ever called — nothing to cancel
         if (isStale()) {
@@ -101,14 +106,14 @@ export default function PageCanvas({
       })
       .catch((err: unknown) => {
         if (isStale() || err instanceof RenderingCancelledException) return
-        console.error(`Failed to render page ${pageNumber}`, err)
+        console.error('Failed to render page', err)
         setError(err instanceof Error ? err.message : 'Failed to render page')
       })
 
     return () => {
       cancelFn?.()
     }
-  }, [pdfDoc, pageNumber, scale, active])
+  }, [sourcePdfDoc, sourcePageNumber, sourceRotationDeg, scale, active])
 
   // Reattaches the Transformer to the selected node whenever selection
   // changes, or when this page's Stage remounts after scrolling back into
@@ -352,7 +357,9 @@ export default function PageCanvas({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {active ? (
+      {isBlank ? (
+        <div className="h-full w-full bg-white" />
+      ) : active ? (
         <canvas
           ref={canvasRef}
           style={{ width: displayWidth, height: displayHeight, display: 'block' }}
@@ -430,7 +437,7 @@ export default function PageCanvas({
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-red-50 p-2 text-center text-xs text-red-700">
-          Page {pageNumber} failed to render: {error}
+          This page failed to render: {error}
         </div>
       )}
     </div>

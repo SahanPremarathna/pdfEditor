@@ -1,8 +1,18 @@
 import { create } from 'zustand'
+import { normalizeRotation } from '../core/coords'
 import { exportPdf } from '../core/exportPdf'
+import { useHistoryStore } from '../core/history'
 import { getPageSize, loadDocument, type PDFDocumentProxy } from '../core/renderPdf'
 import { useObjectStore } from './objectStore'
 import type { PageMeta } from '../../shared/types'
+
+const DEFAULT_PAGE_WIDTH_PT = 612 // US Letter, used only when inserting a blank page into an empty document
+const DEFAULT_PAGE_HEIGHT_PT = 792
+
+interface ImportedDoc {
+  pdfDoc: PDFDocumentProxy
+  bytes: Uint8Array
+}
 
 interface DocumentState {
   fileName: string | null
@@ -10,6 +20,14 @@ interface DocumentState {
   originalBytes: Uint8Array | null
   pdfDoc: PDFDocumentProxy | null
   pages: PageMeta[]
+  /** Source docs for `{kind:'imported'}` pages, keyed by importId — cached
+   *  for the lifetime of the open document, never evicted (consistent with
+   *  the app already holding the whole current doc in memory). */
+  importedDocs: Record<string, ImportedDoc>
+  /** Monotonic counter for PageMeta.index on new (blank/imported) pages.
+   *  Never rolled back by undo — ids are burned permanently so the undo and
+   *  redo branches can never collide on the same id. */
+  nextPageId: number
   isLoading: boolean
   isSaving: boolean
   isDirty: boolean
@@ -18,6 +36,30 @@ interface DocumentState {
   save: () => Promise<void>
   saveAs: () => Promise<void>
   markDirty: () => void
+
+  rotatePage: (pageId: number, direction: 'cw' | 'ccw') => void
+  deletePage: (pageId: number) => void
+  reorderPages: (draggedPageId: number, targetPageId: number) => void
+  insertBlankPage: (afterPageId: number | null, size?: { widthPt: number; heightPt: number }) => void
+  importPagesFromFile: (afterPageId: number | null) => Promise<void>
+}
+
+/**
+ * Commits a `pages` mutation and records it on the shared, global undo/redo
+ * stack (core/history.ts) — the same stack objectStore pushes onto, so page
+ * operations and object edits interleave in true chronological order.
+ * `pages` and the dirty flag live in the same store, so this can mark dirty
+ * directly rather than needing a cross-store subscription the way
+ * objectStore's edits do.
+ */
+function commitPages(set: (partial: Partial<DocumentState>) => void, before: PageMeta[], after: PageMeta[]): void {
+  if (after === before) return
+  set({ pages: after, isDirty: true })
+  window.api.notifyDirty(true)
+  useHistoryStore.getState().push({
+    undo: () => useDocumentStore.setState({ pages: before }),
+    redo: () => useDocumentStore.setState({ pages: after })
+  })
 }
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
@@ -26,6 +68,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   originalBytes: null,
   pdfDoc: null,
   pages: [],
+  importedDocs: {},
+  nextPageId: 0,
   isLoading: false,
   isSaving: false,
   isDirty: false,
@@ -40,6 +84,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         return
       }
 
+      // Opening a different document invalidates any in-flight undo/redo
+      // entries from whatever was open before — they'd otherwise call
+      // setState against stores that no longer hold the document they were
+      // captured for.
+      useHistoryStore.getState().clear()
+
       // pdf.js transfers this buffer to its worker thread (a Transferable,
       // for performance), which DETACHES it in the main thread — keep an
       // independent copy for exportPdf's later use, or originalBytes would
@@ -50,7 +100,14 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const pages: PageMeta[] = []
       for (let i = 1; i <= pdfDoc.numPages; i++) {
         const { width, height } = await getPageSize(pdfDoc, i)
-        pages.push({ index: i - 1, widthPt: width, heightPt: height, rotation: 0, deleted: false })
+        pages.push({
+          index: i - 1,
+          source: { kind: 'original', sourcePageNumber: i },
+          widthPt: width,
+          heightPt: height,
+          rotation: 0,
+          deleted: false
+        })
       }
 
       const fileName = result.path.split(/[/\\]/).pop() ?? result.path
@@ -60,6 +117,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         originalBytes,
         pdfDoc,
         pages,
+        importedDocs: {},
+        nextPageId: pdfDoc.numPages,
         isLoading: false,
         isDirty: false
       })
@@ -70,7 +129,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   save: async () => {
-    const { originalBytes, absolutePath } = get()
+    const { originalBytes, absolutePath, pages, importedDocs } = get()
     if (!originalBytes) return
     if (!absolutePath) {
       await get().saveAs()
@@ -79,7 +138,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
     set({ isSaving: true, error: null })
     try {
-      const bytes = await exportPdf(originalBytes, useObjectStore.getState().objectsByPage)
+      const importedSources = Object.fromEntries(Object.entries(importedDocs).map(([id, doc]) => [id, doc.bytes]))
+      const bytes = await exportPdf(originalBytes, useObjectStore.getState().objectsByPage, pages, importedSources)
       await window.api.save(absolutePath, bytes)
       set({ isSaving: false, isDirty: false })
       window.api.notifyDirty(false)
@@ -89,12 +149,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   saveAs: async () => {
-    const { originalBytes, fileName } = get()
+    const { originalBytes, fileName, pages, importedDocs } = get()
     if (!originalBytes) return
 
     set({ isSaving: true, error: null })
     try {
-      const bytes = await exportPdf(originalBytes, useObjectStore.getState().objectsByPage)
+      const importedSources = Object.fromEntries(Object.entries(importedDocs).map(([id, doc]) => [id, doc.bytes]))
+      const bytes = await exportPdf(originalBytes, useObjectStore.getState().objectsByPage, pages, importedSources)
       const chosenPath = await window.api.saveAs(fileName ?? 'document.pdf', bytes)
       if (chosenPath) {
         set({
@@ -112,15 +173,113 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
   },
 
-  markDirty: () => set({ isDirty: true })
+  markDirty: () => set({ isDirty: true }),
+
+  rotatePage: (pageId, direction) => {
+    const before = get().pages
+    const idx = before.findIndex((p) => p.index === pageId)
+    if (idx === -1) return
+
+    const page = before[idx]
+    const delta = direction === 'cw' ? 90 : -90
+    const updated: PageMeta = {
+      ...page,
+      rotation: normalizeRotation(page.rotation + delta),
+      widthPt: page.heightPt,
+      heightPt: page.widthPt
+    }
+    const after = before.map((p, i) => (i === idx ? updated : p))
+    commitPages(set, before, after)
+  },
+
+  deletePage: (pageId) => {
+    const before = get().pages
+    const idx = before.findIndex((p) => p.index === pageId)
+    if (idx === -1 || before[idx].deleted) return
+
+    const after = before.map((p, i) => (i === idx ? { ...p, deleted: true } : p))
+    commitPages(set, before, after)
+  },
+
+  reorderPages: (draggedPageId, targetPageId) => {
+    const before = get().pages
+    const fromIdx = before.findIndex((p) => p.index === draggedPageId)
+    if (fromIdx === -1 || draggedPageId === targetPageId) return
+
+    const after = [...before]
+    const [moved] = after.splice(fromIdx, 1)
+    // Recomputed AFTER removing the dragged page, since removal shifts every
+    // subsequent index — looking this up by id (not raw position) also
+    // avoids any mismatch with a caller that's only looking at the
+    // deleted-filtered, on-screen ordering.
+    const insertAt = after.findIndex((p) => p.index === targetPageId)
+    if (insertAt === -1) return
+    after.splice(insertAt, 0, moved)
+    commitPages(set, before, after)
+  },
+
+  insertBlankPage: (afterPageId, size) => {
+    const state = get()
+    const before = state.pages
+    const afterIdx = afterPageId === null ? -1 : before.findIndex((p) => p.index === afterPageId)
+    const reference = afterIdx !== -1 ? before[afterIdx] : before[before.length - 1]
+
+    const newPage: PageMeta = {
+      index: state.nextPageId,
+      source: { kind: 'blank' },
+      widthPt: size?.widthPt ?? reference?.widthPt ?? DEFAULT_PAGE_WIDTH_PT,
+      heightPt: size?.heightPt ?? reference?.heightPt ?? DEFAULT_PAGE_HEIGHT_PT,
+      rotation: 0,
+      deleted: false
+    }
+    const insertAt = afterIdx !== -1 ? afterIdx + 1 : before.length
+    const after = [...before.slice(0, insertAt), newPage, ...before.slice(insertAt)]
+
+    set({ nextPageId: state.nextPageId + 1 })
+    commitPages(set, before, after)
+  },
+
+  importPagesFromFile: async (afterPageId) => {
+    const result = await window.api.openDialog()
+    if (!result) return
+
+    // Same detach concern as openFile's originalBytes — keep an independent
+    // copy before loadDocument transfers the original to pdf.js's worker.
+    const bytes = result.bytes.slice()
+    const pdfDoc = await loadDocument(result.bytes)
+    const importId = crypto.randomUUID()
+
+    const state = get()
+    const before = state.pages
+    const afterIdx = afterPageId === null ? -1 : before.findIndex((p) => p.index === afterPageId)
+    const insertAt = afterIdx !== -1 ? afterIdx + 1 : before.length
+
+    const newPages: PageMeta[] = []
+    let nextId = state.nextPageId
+    for (let i = 1; i <= pdfDoc.numPages; i++) {
+      const { width, height } = await getPageSize(pdfDoc, i)
+      newPages.push({
+        index: nextId++,
+        source: { kind: 'imported', importId, sourcePageNumber: i },
+        widthPt: width,
+        heightPt: height,
+        rotation: 0,
+        deleted: false
+      })
+    }
+    const after = [...before.slice(0, insertAt), ...newPages, ...before.slice(insertAt)]
+
+    set((s) => ({ nextPageId: nextId, importedDocs: { ...s.importedDocs, [importId]: { pdfDoc, bytes } } }))
+    commitPages(set, before, after)
+  }
 }))
 
 // Kept decoupled from objectStore's mutation logic (objectStore never imports
 // documentStore) — dirty tracking is a subscription on the side, not a
 // cross-store action call. Reference comparison on objectsByPage is valid
-// because every mutating objectStore action rebuilds it immutably;
-// selectObject/startEditing/stopEditing don't touch it, so selection alone
-// correctly never dirties the document.
+// because every mutating objectStore action (and every undo/redo of one)
+// rebuilds it immutably; selectObject/startEditing/stopEditing don't touch
+// it, so selection alone correctly never dirties the document.
 useObjectStore.subscribe((state, prevState) => {
   if (state.objectsByPage !== prevState.objectsByPage) {
     useDocumentStore.getState().markDirty()

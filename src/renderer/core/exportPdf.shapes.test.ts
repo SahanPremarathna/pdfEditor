@@ -13,6 +13,7 @@
 import { PDFDocument } from 'pdf-lib'
 import { describe, expect, it } from 'vitest'
 import { exportPdf } from './exportPdf'
+import { identityPagesFor } from './exportPdf.testHelpers'
 import { createImageObject, createPathObject, createShapeObject, createTextObject } from './objects'
 import type { PdfObject } from '../../shared/types'
 
@@ -25,7 +26,7 @@ async function exportSinglePage(objects: PdfObject[]): Promise<{ bytes: Uint8Arr
   sourceDoc.addPage([612, 792])
   const sourceBytes = await sourceDoc.save()
 
-  const bytes = await exportPdf(sourceBytes, { 0: objects })
+  const bytes = await exportPdf(sourceBytes, { 0: objects }, identityPagesFor(sourceDoc), {})
   const reloaded = await PDFDocument.load(bytes)
   return { bytes, pageCount: reloaded.getPageCount() }
 }

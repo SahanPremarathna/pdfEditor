@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { BaseObject, ImageObject, PdfObject, TextObject } from '../../shared/types'
+import { useHistoryStore } from '../core/history'
 import { densifyZ, reorderZ, type ZDirection } from '../core/zOrder'
 
 const EMPTY_PAGE: PdfObject[] = []
@@ -63,63 +64,96 @@ function applyZOrder(
   return { ...objectsByPage, [pageIndex]: reordered }
 }
 
-export const useObjectStore = create<ObjectState>((set) => ({
+/**
+ * Commits an `objectsByPage` mutation and records it on the shared, global
+ * undo/redo stack (core/history.ts) — shared with documentStore's page ops,
+ * so edits and page operations interleave in true chronological order.
+ *
+ * `after === before` (the existing no-op convention every caller already
+ * follows — locked-object guards, z-order boundary guards) skips both the
+ * `set` call and the history push, so no-ops never pollute the undo stack.
+ * `undo`/`redo` write straight to `useObjectStore.setState`, bypassing the
+ * public actions entirely, so replaying history can never recursively push
+ * another history entry.
+ */
+function commitObjectsByPage(
+  set: (partial: Partial<ObjectState>) => void,
+  before: Record<number, PdfObject[]>,
+  after: Record<number, PdfObject[]>,
+  extra?: Partial<ObjectState>
+): void {
+  if (after === before) {
+    if (extra) set(extra)
+    return
+  }
+  set({ objectsByPage: after, ...extra })
+  useHistoryStore.getState().push({
+    undo: () => useObjectStore.setState({ objectsByPage: before }),
+    redo: () => useObjectStore.setState({ objectsByPage: after })
+  })
+}
+
+export const useObjectStore = create<ObjectState>((set, get) => ({
   objectsByPage: {},
   selectedId: null,
   activeEditingId: null,
 
-  addObject: (obj) =>
-    set((state) => {
-      const existing = state.objectsByPage[obj.pageIndex] ?? EMPTY_PAGE
-      return {
-        objectsByPage: { ...state.objectsByPage, [obj.pageIndex]: [...existing, obj] }
-      }
-    }),
+  addObject: (obj) => {
+    const before = get().objectsByPage
+    const existing = before[obj.pageIndex] ?? EMPTY_PAGE
+    const after = { ...before, [obj.pageIndex]: [...existing, obj] }
+    commitObjectsByPage(set, before, after)
+  },
 
-  updateObject: (pageIndex, id, patch) =>
-    set((state) => {
-      const existing = state.objectsByPage[pageIndex] ?? EMPTY_PAGE
-      const target = existing.find((o) => o.id === id)
-      if (!target || target.locked) return state
+  updateObject: (pageIndex, id, patch) => {
+    const before = get().objectsByPage
+    const existing = before[pageIndex] ?? EMPTY_PAGE
+    const target = existing.find((o) => o.id === id)
+    if (!target || target.locked) return
 
-      return {
-        objectsByPage: {
-          ...state.objectsByPage,
-          // The merge always preserves `o.type` (patch never includes it),
-          // so the result is still a valid member of the original object's
-          // own union branch — just not something TS can prove structurally
-          // from a widened patch bag, hence the cast.
-          [pageIndex]: existing.map((o) => (o.id === id ? ({ ...o, ...patch } as PdfObject) : o))
-        }
-      }
-    }),
+    const after = {
+      ...before,
+      // The merge always preserves `o.type` (patch never includes it), so
+      // the result is still a valid member of the original object's own
+      // union branch — just not something TS can prove structurally from a
+      // widened patch bag, hence the cast.
+      [pageIndex]: existing.map((o) => (o.id === id ? ({ ...o, ...patch } as PdfObject) : o))
+    }
+    commitObjectsByPage(set, before, after)
+  },
 
-  removeObject: (pageIndex, id) =>
-    set((state) => {
-      const existing = state.objectsByPage[pageIndex] ?? EMPTY_PAGE
-      const target = existing.find((o) => o.id === id)
-      if (!target || target.locked) return state
+  removeObject: (pageIndex, id) => {
+    const state = get()
+    const before = state.objectsByPage
+    const existing = before[pageIndex] ?? EMPTY_PAGE
+    const target = existing.find((o) => o.id === id)
+    if (!target || target.locked) return
 
-      return {
-        objectsByPage: {
-          ...state.objectsByPage,
-          [pageIndex]: densifyZ(existing.filter((o) => o.id !== id))
-        },
-        selectedId: state.selectedId === id ? null : state.selectedId,
-        activeEditingId: state.activeEditingId === id ? null : state.activeEditingId
-      }
-    }),
+    const after = { ...before, [pageIndex]: densifyZ(existing.filter((o) => o.id !== id)) }
+    commitObjectsByPage(set, before, after, {
+      selectedId: state.selectedId === id ? null : state.selectedId,
+      activeEditingId: state.activeEditingId === id ? null : state.activeEditingId
+    })
+  },
 
   selectObject: (id) => set({ selectedId: id }),
 
-  bringToFront: (pageIndex, id) =>
-    set((state) => ({ objectsByPage: applyZOrder(state.objectsByPage, pageIndex, id, 'front') })),
-  sendToBack: (pageIndex, id) =>
-    set((state) => ({ objectsByPage: applyZOrder(state.objectsByPage, pageIndex, id, 'back') })),
-  bringForward: (pageIndex, id) =>
-    set((state) => ({ objectsByPage: applyZOrder(state.objectsByPage, pageIndex, id, 'forward') })),
-  sendBackward: (pageIndex, id) =>
-    set((state) => ({ objectsByPage: applyZOrder(state.objectsByPage, pageIndex, id, 'backward') })),
+  bringToFront: (pageIndex, id) => {
+    const before = get().objectsByPage
+    commitObjectsByPage(set, before, applyZOrder(before, pageIndex, id, 'front'))
+  },
+  sendToBack: (pageIndex, id) => {
+    const before = get().objectsByPage
+    commitObjectsByPage(set, before, applyZOrder(before, pageIndex, id, 'back'))
+  },
+  bringForward: (pageIndex, id) => {
+    const before = get().objectsByPage
+    commitObjectsByPage(set, before, applyZOrder(before, pageIndex, id, 'forward'))
+  },
+  sendBackward: (pageIndex, id) => {
+    const before = get().objectsByPage
+    commitObjectsByPage(set, before, applyZOrder(before, pageIndex, id, 'backward'))
+  },
 
   startEditing: (id) => set({ activeEditingId: id }),
   stopEditing: () => set({ activeEditingId: null })

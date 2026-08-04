@@ -5,7 +5,7 @@ import { normalizeFontFamily, type OnScreenFontFamily } from './fontFamilies'
 import { createFontRegistry } from './fonts'
 import { createImageRegistry, type ImageRegistry } from './images'
 import { wrapText } from './textWrap'
-import type { ImageObject, PathObject, PdfObject, ShapeObject, TextObject } from '../../shared/types'
+import type { ImageObject, PageMeta, PathObject, PdfObject, ShapeObject, TextObject } from '../../shared/types'
 
 /**
  * Translates a raw pdf-lib load error into a message safe to show the user.
@@ -253,31 +253,86 @@ function drawPathObject(page: PDFPage, obj: PathObject, cropBox: CropBox, pageRo
 }
 
 /**
- * Loads `originalBytes`, draws every object in `objectsByPage` onto its page
- * (sorted by z, bottom-to-front), and returns the resulting PDF bytes.
- * Pure/renderer-safe — never touches fs/path/electron; the caller (main
- * process, via IPC) is responsible for actually writing the result to disk.
+ * Builds `freshDoc`'s page list from `pages` (in array order — that order IS
+ * the final export order), applying deletion/reorder/insert/import/rotate,
+ * and returns a lookup from each surviving PageMeta's stable `index` to the
+ * PDFPage it ended up as in `freshDoc`. Deleted pages are simply omitted, so
+ * they (and anything keyed to them in objectsByPage) disappear from the
+ * output — the omission from this map is what actually enforces that.
+ */
+async function buildPageMapping(
+  freshDoc: PDFDocument,
+  pages: PageMeta[],
+  originalDoc: PDFDocument,
+  importedDocsById: Map<string, PDFDocument>
+): Promise<Map<number, PDFPage>> {
+  const pageIndexToFreshPage = new Map<number, PDFPage>()
+
+  for (const meta of pages) {
+    if (meta.deleted) continue
+
+    let page: PDFPage
+    if (meta.source.kind === 'blank') {
+      page = freshDoc.addPage([meta.widthPt, meta.heightPt])
+    } else {
+      const sourceDoc = meta.source.kind === 'original' ? originalDoc : importedDocsById.get(meta.source.importId)
+      if (!sourceDoc) continue // an imported source that somehow isn't in the cache — skip rather than throw
+      const [copied] = await freshDoc.copyPages(sourceDoc, [meta.source.sourcePageNumber - 1])
+      page = freshDoc.addPage(copied)
+    }
+
+    if (meta.rotation !== 0) {
+      // Additive on top of whatever /Rotate the copied page already carries
+      // (pdf-lib's setRotation is absolute, so read-then-add is what makes
+      // this correct without separately tracking the source's own rotation).
+      page.setRotation(degrees(normalizeRotation(page.getRotation().angle + meta.rotation)))
+    }
+
+    pageIndexToFreshPage.set(meta.index, page)
+  }
+
+  return pageIndexToFreshPage
+}
+
+/**
+ * Loads `originalBytes` (and any imported source PDFs), reconstructs the
+ * page list described by `pages` (delete/reorder/insert-blank/import/rotate)
+ * into a fresh document, draws every object in `objectsByPage` onto its
+ * final page (sorted by z, bottom-to-front), and returns the resulting PDF
+ * bytes. Pure/renderer-safe — never touches fs/path/electron; the caller
+ * (main process, via IPC) is responsible for actually writing the result to
+ * disk.
  */
 export async function exportPdf(
   originalBytes: Uint8Array,
-  objectsByPage: Record<number, PdfObject[]>
+  objectsByPage: Record<number, PdfObject[]>,
+  pages: PageMeta[],
+  importedSources: Record<string, Uint8Array>
 ): Promise<Uint8Array> {
-  let doc: PDFDocument
+  let originalDoc: PDFDocument
   try {
-    doc = await PDFDocument.load(originalBytes, { updateMetadata: false })
+    originalDoc = await PDFDocument.load(originalBytes, { updateMetadata: false })
   } catch (err) {
     throw toExportError(err)
   }
 
-  const registry = createFontRegistry(doc)
-  const imageRegistry = createImageRegistry(doc)
-  const pageCount = doc.getPageCount()
+  const importedDocsById = new Map<string, PDFDocument>(
+    await Promise.all(
+      Object.entries(importedSources).map(
+        async ([id, bytes]) => [id, await PDFDocument.load(bytes, { updateMetadata: false })] as const
+      )
+    )
+  )
+
+  const freshDoc = await PDFDocument.create()
+  const registry = createFontRegistry(freshDoc)
+  const imageRegistry = createImageRegistry(freshDoc)
+  const pageIndexToFreshPage = await buildPageMapping(freshDoc, pages, originalDoc, importedDocsById)
 
   for (const [pageIndexKey, objects] of Object.entries(objectsByPage)) {
-    const pageIndex = Number(pageIndexKey)
-    if (pageIndex < 0 || pageIndex >= pageCount || objects.length === 0) continue
+    const page = pageIndexToFreshPage.get(Number(pageIndexKey))
+    if (!page || objects.length === 0) continue
 
-    const page = doc.getPage(pageIndex)
     const cropBox = page.getCropBox()
     const pageRotation = normalizeRotation(page.getRotation().angle)
 
@@ -308,5 +363,5 @@ export async function exportPdf(
     }
   }
 
-  return doc.save()
+  return freshDoc.save()
 }

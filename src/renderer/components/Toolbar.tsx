@@ -1,3 +1,4 @@
+import { selectCanRedo, selectCanUndo, useHistoryStore } from '../core/history'
 import { useDocumentStore } from '../store/documentStore'
 import { useUiStore, type Tool } from '../store/uiStore'
 
@@ -32,6 +33,9 @@ export default function Toolbar(): JSX.Element {
   const activeTool = useUiStore((s) => s.activeTool)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
 
+  const canUndo = useHistoryStore(selectCanUndo)
+  const canRedo = useHistoryStore(selectCanRedo)
+
   return (
     <div className="flex h-12 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 text-sm">
       <button
@@ -60,6 +64,27 @@ export default function Toolbar(): JSX.Element {
       >
         Save As
       </button>
+
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => useHistoryStore.getState().undo()}
+          disabled={!canUndo}
+          className="h-7 w-7 rounded border border-slate-300 hover:bg-slate-100 disabled:opacity-50"
+          aria-label="Undo"
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          onClick={() => useHistoryStore.getState().redo()}
+          disabled={!canRedo}
+          className="h-7 w-7 rounded border border-slate-300 hover:bg-slate-100 disabled:opacity-50"
+          aria-label="Redo"
+        >
+          ↷
+        </button>
+      </div>
 
       <div className="flex items-center gap-1">
         <button
