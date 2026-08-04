@@ -41,7 +41,15 @@ async function exportAndReadBack(
   page.setRotation(degrees(rotation))
   const sourceBytes = await sourceDoc.save()
 
-  const exportedBytes = await exportPdf(sourceBytes, { [obj.pageIndex]: [obj] }, identityPagesFor(sourceDoc), {})
+  const { bytes: exportedBytes } = await exportPdf(
+    sourceBytes,
+    { [obj.pageIndex]: [obj] },
+    identityPagesFor(sourceDoc),
+    {},
+    [],
+    false,
+    null
+  )
 
   const readDoc = await getDocument({ data: exportedBytes, standardFontDataUrl }).promise
   const readPage = await readDoc.getPage(obj.pageIndex + 1)

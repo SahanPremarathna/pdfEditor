@@ -1,6 +1,7 @@
 import { selectCanRedo, selectCanUndo, useHistoryStore } from '../core/history'
 import { useDocumentStore } from '../store/documentStore'
 import { useUiStore, type Tool } from '../store/uiStore'
+import { useWatermarkStore } from '../store/watermarkStore'
 
 const TOOLS: { id: Tool; label: string }[] = [
   { id: 'text', label: 'Text' },
@@ -21,6 +22,9 @@ export default function Toolbar(): JSX.Element {
   const isSaving = useDocumentStore((s) => s.isSaving)
   const isDirty = useDocumentStore((s) => s.isDirty)
   const error = useDocumentStore((s) => s.error)
+  const notice = useDocumentStore((s) => s.notice)
+  const clearError = useDocumentStore((s) => s.clearError)
+  const clearNotice = useDocumentStore((s) => s.clearNotice)
   const openFile = useDocumentStore((s) => s.openFile)
   const save = useDocumentStore((s) => s.save)
   const saveAs = useDocumentStore((s) => s.saveAs)
@@ -32,6 +36,11 @@ export default function Toolbar(): JSX.Element {
   const setFitWidth = useUiStore((s) => s.setFitWidth)
   const activeTool = useUiStore((s) => s.activeTool)
   const setActiveTool = useUiStore((s) => s.setActiveTool)
+  const flattenOnExport = useUiStore((s) => s.flattenOnExport)
+  const setFlattenOnExport = useUiStore((s) => s.setFlattenOnExport)
+  const isWatermarkPanelOpen = useUiStore((s) => s.isWatermarkPanelOpen)
+  const toggleWatermarkPanelOpen = useUiStore((s) => s.toggleWatermarkPanelOpen)
+  const watermarkEnabled = useWatermarkStore((s) => s.config.enabled)
 
   const canUndo = useHistoryStore(selectCanUndo)
   const canRedo = useHistoryStore(selectCanRedo)
@@ -63,6 +72,34 @@ export default function Toolbar(): JSX.Element {
         className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
       >
         Save As
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setFlattenOnExport(!flattenOnExport)}
+        className={`rounded border px-2 py-1 ${
+          flattenOnExport
+            ? 'border-slate-800 bg-slate-800 text-white'
+            : 'border-slate-300 text-slate-600 hover:bg-slate-100'
+        }`}
+        aria-pressed={flattenOnExport}
+        title="Flatten AcroForm fields into page content on save"
+      >
+        Flatten on save
+      </button>
+
+      <button
+        type="button"
+        onClick={toggleWatermarkPanelOpen}
+        className={`rounded border px-2 py-1 ${
+          isWatermarkPanelOpen
+            ? 'border-slate-800 bg-slate-800 text-white'
+            : 'border-slate-300 text-slate-600 hover:bg-slate-100'
+        }`}
+        aria-pressed={isWatermarkPanelOpen}
+        title="Add or edit a watermark"
+      >
+        Watermark{watermarkEnabled ? ' •' : ''}
       </button>
 
       <div className="flex items-center gap-1">
@@ -141,7 +178,23 @@ export default function Toolbar(): JSX.Element {
         {isDirty && <span className="text-slate-800"> •</span>}
       </span>
 
-      {error && <span className="text-red-600">{error}</span>}
+      {error && (
+        <div className="flex items-center gap-2 rounded border border-red-300 bg-red-50 px-2 py-1 text-red-700">
+          <span>{error}</span>
+          <button type="button" onClick={clearError} aria-label="Dismiss error" className="font-bold">
+            ×
+          </button>
+        </div>
+      )}
+
+      {notice && (
+        <div className="flex items-center gap-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-amber-800">
+          <span>{notice}</span>
+          <button type="button" onClick={clearNotice} aria-label="Dismiss notice" className="font-bold">
+            ×
+          </button>
+        </div>
+      )}
     </div>
   )
 }

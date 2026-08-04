@@ -44,7 +44,7 @@ describe('exportPdf page reconstruction', () => {
       originalPage(2, 3, [500, 600])
     ]
 
-    const exported = await exportPdf(bytes, {}, pages, {})
+    const { bytes: exported } = await exportPdf(bytes, {}, pages, {}, [], false, null)
     const reloaded = await PDFDocument.load(exported)
 
     expect(reloaded.getPageCount()).toBe(2)
@@ -65,7 +65,7 @@ describe('exportPdf page reconstruction', () => {
       originalPage(1, 2, [301, 401])
     ]
 
-    const exported = await exportPdf(bytes, {}, pages, {})
+    const { bytes: exported } = await exportPdf(bytes, {}, pages, {}, [], false, null)
     const reloaded = await PDFDocument.load(exported)
 
     expect(reloaded.getPageCount()).toBe(3)
@@ -85,7 +85,7 @@ describe('exportPdf page reconstruction', () => {
       originalPage(1, 2, [500, 600])
     ]
 
-    const exported = await exportPdf(bytes, {}, pages, {})
+    const { bytes: exported } = await exportPdf(bytes, {}, pages, {}, [], false, null)
     const reloaded = await PDFDocument.load(exported)
 
     expect(reloaded.getPageCount()).toBe(3)
@@ -104,7 +104,7 @@ describe('exportPdf page reconstruction', () => {
       { index: 1, source: { kind: 'imported', importId, sourcePageNumber: 2 }, widthPt: 333, heightPt: 444, rotation: 0, deleted: false }
     ]
 
-    const exported = await exportPdf(bytes, {}, pages, { [importId]: importedBytes })
+    const { bytes: exported } = await exportPdf(bytes, {}, pages, { [importId]: importedBytes }, [], false, null)
     const reloaded = await PDFDocument.load(exported)
 
     expect(reloaded.getPageCount()).toBe(2)
@@ -119,19 +119,28 @@ describe('exportPdf page reconstruction', () => {
 
     const pages: PageMeta[] = [originalPage(0, 1, [300, 400], { rotation: 90 })]
 
-    const exported = await exportPdf(bytes, {}, pages, {})
+    const { bytes: exported } = await exportPdf(bytes, {}, pages, {}, [], false, null)
     const reloaded = await PDFDocument.load(exported)
 
     expect(reloaded.getPage(0).getRotation().angle).toBe(180)
   })
 
   it('leaves rotation untouched when the delta is 0', async () => {
-    const { bytes } = await sizedDoc([[300, 400]])
+    // A second source page not referenced in `pages` forces the
+    // fresh-document reconstruction path (isIdentityPageList requires the
+    // pages list to match the source's own page count) — this test is
+    // specifically about buildPageMapping's rotation handling, not the
+    // identity/bypass fast path (covered separately in exportPdf.forms.test.ts).
+    const { bytes } = await sizedDoc([
+      [300, 400],
+      [999, 999]
+    ])
     const pages: PageMeta[] = [originalPage(0, 1, [300, 400])]
 
-    const exported = await exportPdf(bytes, {}, pages, {})
+    const { bytes: exported } = await exportPdf(bytes, {}, pages, {}, [], false, null)
     const reloaded = await PDFDocument.load(exported)
 
+    expect(reloaded.getPageCount()).toBe(1)
     expect(reloaded.getPage(0).getRotation().angle).toBe(0)
   })
 
@@ -150,7 +159,7 @@ describe('exportPdf page reconstruction', () => {
       1: [createTextObject(1, 10, 10, 0, { text: 'on a surviving page' }, () => 'b')]
     }
 
-    const exported = await exportPdf(bytes, objectsByPage, pages, {})
+    const { bytes: exported } = await exportPdf(bytes, objectsByPage, pages, {}, [], false, null)
     const reloaded = await PDFDocument.load(exported)
 
     expect(reloaded.getPageCount()).toBe(1)

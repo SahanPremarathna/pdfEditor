@@ -1,12 +1,28 @@
 import './pdfWorker'
-import { getDocument, type PDFDocumentProxy, type RenderTask } from 'pdfjs-dist'
+import { getDocument, PasswordException, type PDFDocumentProxy, type RenderTask } from 'pdfjs-dist'
 import { normalizeRotation, type PageRotation } from './coords'
 
 export type { PDFDocumentProxy }
 
+/**
+ * pdfjs-dist's `PasswordException` (unlike pdf-lib's tslib-downleveled error
+ * classes elsewhere in this app) has a correctly-set-up prototype chain, so
+ * `instanceof` genuinely works here — no message-sniffing needed. Detection
+ * only: this rewrites to one friendly message regardless of whether the file
+ * needs a password at all or a wrong one was supplied (PasswordResponses'
+ * NEED_PASSWORD vs INCORRECT_PASSWORD), since there is no retry/prompt UI to
+ * make that distinction meaningful.
+ */
 export async function loadDocument(bytes: Uint8Array): Promise<PDFDocumentProxy> {
   const task = getDocument({ data: bytes })
-  return task.promise
+  try {
+    return await task.promise
+  } catch (err) {
+    if (err instanceof PasswordException) {
+      throw new Error('This PDF is password-protected. Inkline cannot open password-protected PDFs yet.')
+    }
+    throw err
+  }
 }
 
 /** Page size in CSS px at scale 1 — pdf.js bakes /Rotate into this, per spec §4.

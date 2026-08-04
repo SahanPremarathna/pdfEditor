@@ -2,6 +2,8 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { CH } from '../shared/channels'
 import { registerFileHandlers } from './ipc/fileHandlers'
+import { getRecentFiles, registerRecentFilesHandlers } from './ipc/recentFiles'
+import { setAppMenu } from './menu'
 
 // Single-window app: tracked at module scope rather than per-BrowserWindow.
 let isDirty = false
@@ -56,7 +58,7 @@ function registerCloseGuard(win: BrowserWindow): void {
   })
 }
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -89,12 +91,23 @@ function createWindow(): void {
   } else {
     void win.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  void setAppMenu(win, getRecentFiles)
+  return win
 }
 
 void app.whenReady().then(() => {
   registerFileHandlers()
+  registerRecentFilesHandlers()
   registerDirtyTracking()
-  createWindow()
+  const win = createWindow()
+
+  // Refreshes the "Open Recent" submenu (e.g. after a save/open elsewhere
+  // added an entry) whenever the window regains focus, without needing to
+  // thread a callback through fileHandlers.ts/recentFiles.ts.
+  app.on('browser-window-focus', () => {
+    void setAppMenu(win, getRecentFiles)
+  })
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

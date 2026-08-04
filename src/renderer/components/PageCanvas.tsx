@@ -11,11 +11,13 @@ import { renderPageToCanvas } from '../core/renderPdf'
 import { nextZ } from '../core/zOrder'
 import { EMPTY_ARRAY, useObjectStore } from '../store/objectStore'
 import { useUiStore, type Tool } from '../store/uiStore'
+import { useWatermarkStore } from '../store/watermarkStore'
 import ImageObjectView from './objects/ImageObjectView'
 import PathObjectView from './objects/PathObjectView'
 import ShapeObjectView from './objects/ShapeObjectView'
 import TextEditOverlay from './objects/TextEditOverlay'
 import TextObjectView from './objects/TextObject'
+import WatermarkOverlay from './objects/WatermarkOverlay'
 import type { PdfObject, TextObject } from '../../shared/types'
 
 interface PageCanvasProps {
@@ -75,6 +77,9 @@ export default function PageCanvas({
   const setActiveTool = useUiStore((s) => s.setActiveTool)
   const setLastActivePageIndex = useUiStore((s) => s.setLastActivePageIndex)
   const requestSignature = useUiStore((s) => s.requestSignature)
+
+  const watermarkConfig = useWatermarkStore((s) => s.config)
+  const isWatermarkOnThisPage = watermarkConfig.enabled && watermarkConfig.pageIndices.includes(pageIndex)
 
   const sortedObjects = useMemo(() => [...objects].sort((a, b) => a.z - b.z), [objects])
   const editingObject = objects.find((o): o is TextObject => o.type === 'text' && o.id === activeEditingId)
@@ -418,6 +423,10 @@ export default function PageCanvas({
                 lineJoin="round"
                 listening={false}
               />
+            )}
+
+            {isWatermarkOnThisPage && (
+              <WatermarkOverlay config={watermarkConfig} widthPt={widthPt} heightPt={heightPt} scale={scale} />
             )}
 
             <Transformer ref={transformerRef} rotateEnabled resizeEnabled />

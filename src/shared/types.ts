@@ -102,3 +102,95 @@ export interface ShapeObject extends BaseObject {
 }
 
 export type PdfObject = TextObject | ImageObject | PathObject | ShapeObject
+
+export type FormFieldType = 'text' | 'checkbox' | 'dropdown' | 'optionList' | 'radioGroup' | 'button'
+
+interface BaseFormField {
+  name: string // PDFField.getName() — the stable key used to look the field back up on export
+  type: FormFieldType
+  readOnly: boolean
+  required: boolean
+}
+
+export interface TextFormField extends BaseFormField {
+  type: 'text'
+  value: string
+  multiline: boolean
+  maxLength: number | null
+}
+
+export interface CheckBoxFormField extends BaseFormField {
+  type: 'checkbox'
+  checked: boolean
+}
+
+export interface DropdownFormField extends BaseFormField {
+  type: 'dropdown'
+  options: string[]
+  selected: string[] // pdf-lib's getSelected() is always string[], even for single-select
+  multiselect: boolean
+}
+
+export interface OptionListFormField extends BaseFormField {
+  type: 'optionList'
+  options: string[]
+  selected: string[]
+  multiselect: boolean
+}
+
+export interface RadioGroupFormField extends BaseFormField {
+  type: 'radioGroup'
+  options: string[]
+  selected: string | null
+}
+
+/** A push button has no fillable value — rendered as a read-only row. */
+export interface ButtonFormField extends BaseFormField {
+  type: 'button'
+}
+
+export type FormField =
+  | TextFormField
+  | CheckBoxFormField
+  | DropdownFormField
+  | OptionListFormField
+  | RadioGroupFormField
+  | ButtonFormField
+
+interface BaseWatermarkConfig {
+  enabled: boolean
+  /** 0..1, fraction of the page's own effective (viewport) width/height —
+   *  anchors the TOP-LEFT corner of the watermark's box, same convention as
+   *  BaseObject.x/y. One shared fraction renders sensibly across a range of
+   *  possibly different-sized pages, unlike an absolute point position. */
+  xFraction: number
+  yFraction: number
+  rotationDeg: number // clockwise, same convention as BaseObject.rotation
+  opacity: number // 0..1
+  /** Resolved SET of stable PageMeta.index values this watermark applies to
+   *  — the only source of truth for "which pages". Computed once by
+   *  applyRange, never re-resolved off current visual position. */
+  pageIndices: number[]
+  /** Last-typed 1-indexed visual page range — display prefill ONLY when
+   *  reopening the panel; never consulted by the overlay or exportPdf. */
+  rangeInput: { from: number; to: number } | null
+}
+
+export interface TextWatermarkConfig extends BaseWatermarkConfig {
+  type: 'text'
+  text: string
+  fontFamily: string // key into renderer/core/fontFamilies.ts, same as TextObject.fontFamily
+  fontSize: number
+  color: string // #rrggbb
+}
+
+export interface ImageWatermarkConfig extends BaseWatermarkConfig {
+  type: 'image'
+  dataUrl: string | null // null until the user has picked a file
+  mime: 'image/png' | 'image/jpeg' | null
+  naturalWidth: number // px, natural size from the picked file
+  naturalHeight: number
+  scale: number // multiplier on naturalWidth/naturalHeight
+}
+
+export type WatermarkConfig = TextWatermarkConfig | ImageWatermarkConfig

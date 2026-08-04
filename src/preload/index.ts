@@ -15,7 +15,13 @@ const api = {
     return () => ipcRenderer.off(CH.REQUEST_SAVE_BEFORE_CLOSE, listener)
   },
   notifySaveBeforeCloseResult: (success: boolean): void =>
-    ipcRenderer.send(CH.SAVE_BEFORE_CLOSE_RESULT, success)
+    ipcRenderer.send(CH.SAVE_BEFORE_CLOSE_RESULT, success),
+  getRecent: (): Promise<string[]> => ipcRenderer.invoke(CH.RECENT_GET),
+  onMenuAction: (cb: (action: string) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, action: string): void => cb(action)
+    ipcRenderer.on(CH.MENU_ACTION, listener)
+    return () => ipcRenderer.off(CH.MENU_ACTION, listener)
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

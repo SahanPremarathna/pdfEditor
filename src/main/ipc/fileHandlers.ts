@@ -2,6 +2,7 @@ import { app, dialog, ipcMain } from 'electron'
 import { isAbsolute, resolve, sep } from 'node:path'
 import { readFile, writeFile } from 'node:fs/promises'
 import { CH } from '../../shared/channels'
+import { addRecentFile } from './recentFiles'
 import type { OpenDialogResult } from '../../shared/types'
 
 /**
@@ -30,6 +31,7 @@ export function registerFileHandlers(): void {
 
     const path = result.filePaths[0]
     const bytes = await readFile(path)
+    void addRecentFile(path)
     return { path, bytes: new Uint8Array(bytes) }
   })
 
@@ -41,6 +43,7 @@ export function registerFileHandlers(): void {
   ipcMain.handle(CH.SAVE, async (_event, path: string, bytes: Uint8Array): Promise<void> => {
     assertSafeSavePath(path)
     await writeFile(path, bytes)
+    void addRecentFile(path)
   })
 
   ipcMain.handle(CH.SAVE_AS, async (_event, defaultName: string, bytes: Uint8Array): Promise<string | null> => {
@@ -52,6 +55,7 @@ export function registerFileHandlers(): void {
 
     assertSafeSavePath(result.filePath)
     await writeFile(result.filePath, bytes)
+    void addRecentFile(result.filePath)
     return result.filePath
   })
 }

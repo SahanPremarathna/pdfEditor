@@ -12,6 +12,8 @@ declare global {
       notifyDirty: (isDirty: boolean) => void
       onRequestSaveBeforeClose: (cb: () => void) => () => void
       notifySaveBeforeCloseResult: (success: boolean) => void
+      getRecent: () => Promise<string[]>
+      onMenuAction: (cb: (action: string) => void) => () => void
     }
   }
 }

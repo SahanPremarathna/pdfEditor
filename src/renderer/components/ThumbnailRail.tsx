@@ -1,5 +1,5 @@
 import type { DragEvent } from 'react'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { resolvePageSource } from '../core/pageSources'
 import { renderPageToCanvas, type PDFDocumentProxy } from '../core/renderPdf'
 import { useDocumentStore } from '../store/documentStore'
@@ -19,6 +19,7 @@ interface ThumbnailCanvasProps {
  *  thumbnail doesn't need). */
 function ThumbnailCanvas({ page, pdfDoc, importedPdfDocs }: ThumbnailCanvasProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [failed, setFailed] = useState(false)
   const source = resolvePageSource(page, pdfDoc, importedPdfDocs)
   const heightPx = (THUMBNAIL_WIDTH_PX * page.heightPt) / page.widthPt
 
@@ -33,16 +34,19 @@ function ThumbnailCanvas({ page, pdfDoc, importedPdfDocs }: ThumbnailCanvasProps
     const canvas = canvasRef.current
     let cancelled = false
     let cancelFn: (() => void) | null = null
+    setFailed(false)
 
-    renderPageToCanvas(sourcePdfDoc, sourcePageNumber, canvas, scale, () => cancelled, sourceRotationDeg).then(
-      (handle) => {
+    renderPageToCanvas(sourcePdfDoc, sourcePageNumber, canvas, scale, () => cancelled, sourceRotationDeg)
+      .then((handle) => {
         if (!handle || cancelled) {
           handle?.cancel()
           return
         }
         cancelFn = handle.cancel
-      }
-    )
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true)
+      })
 
     return () => {
       cancelled = true
@@ -54,6 +58,17 @@ function ThumbnailCanvas({ page, pdfDoc, importedPdfDocs }: ThumbnailCanvasProps
     return <div className="border border-slate-300 bg-white" style={{ width: THUMBNAIL_WIDTH_PX, height: heightPx }} />
   }
 
+  if (failed) {
+    return (
+      <div
+        className="flex items-center justify-center border border-red-300 bg-red-50 text-center text-[10px] text-red-600"
+        style={{ width: THUMBNAIL_WIDTH_PX, height: heightPx }}
+      >
+        Render failed
+      </div>
+    )
+  }
+
   return (
     <canvas
       ref={canvasRef}
@@ -63,7 +78,7 @@ function ThumbnailCanvas({ page, pdfDoc, importedPdfDocs }: ThumbnailCanvasProps
   )
 }
 
-export default function ThumbnailRail(): JSX.Element | null {
+export default function ThumbnailRail(): JSX.Element {
   const pdfDoc = useDocumentStore((s) => s.pdfDoc)
   const pages = useDocumentStore((s) => s.pages)
   const importedDocs = useDocumentStore((s) => s.importedDocs)
@@ -82,7 +97,13 @@ export default function ThumbnailRail(): JSX.Element | null {
     [importedDocs]
   )
 
-  if (!pdfDoc) return null
+  if (!pdfDoc) {
+    return (
+      <div className="flex w-36 shrink-0 items-center justify-center border-r border-slate-200 bg-white p-2 text-center text-xs text-slate-400">
+        No pages
+      </div>
+    )
+  }
 
   const visiblePages = pages.filter((p) => !p.deleted)
 

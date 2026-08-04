@@ -26,7 +26,7 @@ async function exportSinglePage(objects: PdfObject[]): Promise<{ bytes: Uint8Arr
   sourceDoc.addPage([612, 792])
   const sourceBytes = await sourceDoc.save()
 
-  const bytes = await exportPdf(sourceBytes, { 0: objects }, identityPagesFor(sourceDoc), {})
+  const { bytes } = await exportPdf(sourceBytes, { 0: objects }, identityPagesFor(sourceDoc), {}, [], false, null)
   const reloaded = await PDFDocument.load(bytes)
   return { bytes, pageCount: reloaded.getPageCount() }
 }

@@ -38,6 +38,17 @@ interface UiState {
    *  clicking a thumbnail) — PageList consumes it and clears it back to null
    *  right after scrolling, so it never fires again on its own. */
   scrollToPageId: number | null
+  /** Persistent session UI preference (like fitWidth/zoom), not document
+   *  state — whether the next save/save-as should flatten AcroForm fields. */
+  flattenOnExport: boolean
+  /** Whether the watermark side panel is open. Deliberately NOT an
+   *  `activeTool` value — every Tool member is a click-the-canvas-to-create
+   *  gesture that PageCanvas resets back to 'select' after one use, but the
+   *  watermark is configured entirely in its panel and dragged
+   *  unconditionally (like any existing object, which already ignores
+   *  activeTool for dragging) — a dedicated flag matches how `selectedId`/
+   *  form-field-presence already independently drive RightPanel. */
+  isWatermarkPanelOpen: boolean
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -48,6 +59,9 @@ interface UiState {
   clearSignatureRequest: () => void
   requestScrollToPage: (pageIndex: number) => void
   clearScrollToPage: () => void
+  setFlattenOnExport: (flatten: boolean) => void
+  setWatermarkPanelOpen: (open: boolean) => void
+  toggleWatermarkPanelOpen: () => void
 }
 
 const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
@@ -59,6 +73,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   lastActivePageIndex: 0,
   signatureRequest: null,
   scrollToPageId: null,
+  flattenOnExport: false,
+  isWatermarkPanelOpen: false,
 
   setZoom: (zoom) => set({ zoom: clampZoom(zoom), fitWidth: false }),
   zoomIn: () => set({ zoom: clampZoom(get().zoom * ZOOM_STEP), fitWidth: false }),
@@ -69,5 +85,8 @@ export const useUiStore = create<UiState>((set, get) => ({
   requestSignature: (pageIndex, x, y) => set({ signatureRequest: { pageIndex, x, y } }),
   clearSignatureRequest: () => set({ signatureRequest: null }),
   requestScrollToPage: (pageIndex) => set({ scrollToPageId: pageIndex }),
-  clearScrollToPage: () => set({ scrollToPageId: null })
+  clearScrollToPage: () => set({ scrollToPageId: null }),
+  setFlattenOnExport: (flatten) => set({ flattenOnExport: flatten }),
+  setWatermarkPanelOpen: (open) => set({ isWatermarkPanelOpen: open }),
+  toggleWatermarkPanelOpen: () => set((s) => ({ isWatermarkPanelOpen: !s.isWatermarkPanelOpen }))
 }))
