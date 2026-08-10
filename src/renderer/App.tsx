@@ -7,6 +7,7 @@ import { useDeleteSelectedObject } from './hooks/useDeleteSelectedObject'
 import { useEscapeShortcut } from './hooks/useEscapeShortcut'
 import { useFileShortcuts } from './hooks/useFileShortcuts'
 import { useImagePasteHandler } from './hooks/useImagePasteHandler'
+import { useLaunchFileOpen } from './hooks/useLaunchFileOpen'
 import { useMenuActions } from './hooks/useMenuActions'
 import { useSaveShortcut } from './hooks/useSaveShortcut'
 import { useUndoRedoShortcut } from './hooks/useUndoRedoShortcut'
@@ -21,6 +22,7 @@ export default function App(): JSX.Element {
   useZoomShortcut()
   useEscapeShortcut()
   useMenuActions()
+  useLaunchFileOpen()
 
   return (
     <div className="flex h-screen w-screen flex-col bg-slate-100">

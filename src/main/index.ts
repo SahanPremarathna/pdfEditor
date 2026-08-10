@@ -2,11 +2,23 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { CH } from '../shared/channels'
 import { registerFileHandlers } from './ipc/fileHandlers'
+import { findLaunchPdfPath } from './launchArgs'
 import { getRecentFiles, registerRecentFilesHandlers } from './ipc/recentFiles'
 import { setAppMenu } from './menu'
 
 // Single-window app: tracked at module scope rather than per-BrowserWindow.
 let isDirty = false
+
+// Matches useMenuActions.ts's own copy of this prefix (renderer side) — kept
+// as a duplicated literal rather than a shared constant, the same way
+// menu.ts's OPEN_RECENT_PREFIX is already duplicated on both sides.
+const OPEN_LAUNCH_PATH_PREFIX = 'file:openLaunchPath:'
+
+// Resolved once from this process's own launch argv (double-click a .pdf, or
+// "Open with" → Inkline). Exposed to the renderer via GET_LAUNCH_PATH,
+// pulled once on mount rather than pushed over MENU_ACTION, to sidestep the
+// startup race against the renderer's listener not being registered yet.
+const launchPdfPath = findLaunchPdfPath(process.argv)
 
 function registerDirtyTracking(): void {
   ipcMain.on(CH.DIRTY_CHANGED, (_event, dirty: boolean) => {
@@ -96,24 +108,45 @@ function createWindow(): BrowserWindow {
   return win
 }
 
-void app.whenReady().then(() => {
-  registerFileHandlers()
-  registerRecentFilesHandlers()
-  registerDirtyTracking()
-  const win = createWindow()
+// Windows file-association launches always start a fresh process — without
+// this lock, double-clicking a second .pdf while Inkline is already open
+// would spawn a whole second app instance instead of reusing the window.
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
 
-  // Refreshes the "Open Recent" submenu (e.g. after a save/open elsewhere
-  // added an entry) whenever the window regains focus, without needing to
-  // thread a callback through fileHandlers.ts/recentFiles.ts.
-  app.on('browser-window-focus', () => {
-    void setAppMenu(win, getRecentFiles)
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  ipcMain.handle(CH.GET_LAUNCH_PATH, () => launchPdfPath)
+
+  app.on('second-instance', (_event, argv) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (!win) return
+    if (win.isMinimized()) win.restore()
+    win.focus()
+
+    const path = findLaunchPdfPath(argv)
+    if (path) win.webContents.send(CH.MENU_ACTION, `${OPEN_LAUNCH_PATH_PREFIX}${path}`)
   })
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+  void app.whenReady().then(() => {
+    registerFileHandlers()
+    registerRecentFilesHandlers()
+    registerDirtyTracking()
+    const win = createWindow()
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+    // Refreshes the "Open Recent" submenu (e.g. after a save/open elsewhere
+    // added an entry) whenever the window regains focus, without needing to
+    // thread a callback through fileHandlers.ts/recentFiles.ts.
+    app.on('browser-window-focus', () => {
+      void setAppMenu(win, getRecentFiles)
+    })
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  })
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') app.quit()
+  })
+}

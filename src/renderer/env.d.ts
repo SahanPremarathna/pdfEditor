@@ -13,6 +13,7 @@ declare global {
       onRequestSaveBeforeClose: (cb: () => void) => () => void
       notifySaveBeforeCloseResult: (success: boolean) => void
       getRecent: () => Promise<string[]>
+      getLaunchPath: () => Promise<string | null>
       onMenuAction: (cb: (action: string) => void) => () => void
     }
   }

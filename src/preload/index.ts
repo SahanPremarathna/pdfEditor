@@ -17,6 +17,7 @@ const api = {
   notifySaveBeforeCloseResult: (success: boolean): void =>
     ipcRenderer.send(CH.SAVE_BEFORE_CLOSE_RESULT, success),
   getRecent: (): Promise<string[]> => ipcRenderer.invoke(CH.RECENT_GET),
+  getLaunchPath: (): Promise<string | null> => ipcRenderer.invoke(CH.GET_LAUNCH_PATH),
   onMenuAction: (cb: (action: string) => void): (() => void) => {
     const listener = (_event: Electron.IpcRendererEvent, action: string): void => cb(action)
     ipcRenderer.on(CH.MENU_ACTION, listener)

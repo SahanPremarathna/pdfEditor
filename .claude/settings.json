@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(magick -version)",
+      "Bash(convert -version)",
+      "Bash(node -e \"try{require.resolve\\('sharp'\\);console.log\\('sharp available'\\)}catch\\(e\\){console.log\\('no sharp'\\)}\")",
+      "Bash(node scripts/generate-icon.mjs)",
+      "Bash(./Inkline.exe)",
+      "Bash(tasklist //FI \"IMAGENAME eq Inkline.exe\")"
+    ]
+  }
+}

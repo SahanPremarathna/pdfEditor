@@ -5,6 +5,7 @@ import { useUiStore } from '../store/uiStore'
 import { deleteSelectedObject } from './useDeleteSelectedObject'
 
 const OPEN_RECENT_PREFIX = 'file:openRecent:'
+const OPEN_LAUNCH_PATH_PREFIX = 'file:openLaunchPath:'
 
 /** Dispatches native-menu clicks (main process, via menu.ts) to the matching
  *  store call — structurally identical to useSaveShortcut's existing
@@ -14,6 +15,10 @@ export function useMenuActions(): void {
     return window.api.onMenuAction((action) => {
       if (action.startsWith(OPEN_RECENT_PREFIX)) {
         void useDocumentStore.getState().openPath(action.slice(OPEN_RECENT_PREFIX.length))
+        return
+      }
+      if (action.startsWith(OPEN_LAUNCH_PATH_PREFIX)) {
+        void useDocumentStore.getState().openPath(action.slice(OPEN_LAUNCH_PATH_PREFIX.length))
         return
       }
 
