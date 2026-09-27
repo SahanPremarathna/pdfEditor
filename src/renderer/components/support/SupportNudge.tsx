@@ -56,7 +56,7 @@ export default function SupportNudge(): JSX.Element | null {
           <Heart size={18} className="fill-current" />
         </div>
         <div className="min-w-0 pr-5">
-          <p className="text-sm font-semibold">Saved — free, as always.</p>
+          <p className="text-sm font-semibold">Saved - free, as always.</p>
           <p className="mt-0.5 text-[13px] leading-snug text-slate-600 dark:text-slate-300">
             If TrueFreePDF saved you time, a coffee helps keep it free for everyone.
           </p>

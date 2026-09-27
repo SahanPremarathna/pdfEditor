@@ -28,7 +28,7 @@ export const TOOL_GROUPS: ToolDef[][] = [
   [{ id: 'select', label: 'Select', key: 'v', icon: MousePointer2, hint: 'Move, resize and rotate' }],
   [
     { id: 'text', label: 'Text', key: 't', icon: Type, hint: 'Click to place, type, Enter to finish' },
-    { id: 'image', label: 'Image', key: 'i', icon: ImagePlus, hint: 'Click to place — or paste / drop an image' },
+    { id: 'image', label: 'Image', key: 'i', icon: ImagePlus, hint: 'Click to place - or paste / drop an image' },
     { id: 'signature', label: 'Signature', key: 's', icon: Signature, hint: 'Click where the signature goes' }
   ],
   [
@@ -45,7 +45,7 @@ export const TOOL_GROUPS: ToolDef[][] = [
       label: 'Whiteout',
       key: 'w',
       icon: Eraser,
-      hint: 'Covers content visually — the text underneath is NOT removed'
+      hint: 'Covers content visually - the text underneath is NOT removed'
     }
   ]
 ]

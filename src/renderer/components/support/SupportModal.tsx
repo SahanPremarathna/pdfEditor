@@ -55,7 +55,7 @@ function SupportDialog(): JSX.Element {
           </h2>
           <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-slate-600 dark:text-slate-300">
             {MAKER_NAME ? `Hi, I'm ${MAKER_NAME}. ` : 'Hi! '}I build TrueFreePDF on my own. There's no paywall at export, no watermark, no
-            sign-up and nothing is uploaded — and it'll stay that way. If it saved you time or money, a coffee helps keep it
+            sign-up and nothing is uploaded - and it'll stay that way. If it saved you time or money, a coffee helps keep it
             running for everyone.
           </p>
 
@@ -74,7 +74,7 @@ function SupportDialog(): JSX.Element {
           </div>
           {thanked && (
             <p className="mt-3 flex animate-fade-in items-center justify-center gap-1.5 text-sm font-medium text-rose-500">
-              <Heart size={14} className="fill-current" /> Thank you — it genuinely means a lot.
+              <Heart size={14} className="fill-current" /> Thank you - it genuinely means a lot.
             </p>
           )}
 

@@ -37,7 +37,7 @@ const STAGGER = [
 ]
 
 const FEATURES = [
-  { icon: Type, title: 'Add text', body: 'Type anywhere — any language, any symbol.' },
+  { icon: Type, title: 'Add text', body: 'Type anywhere - any language, any symbol.' },
   { icon: Signature, title: 'Sign', body: 'Draw a vector signature and drop it in.' },
   { icon: Highlighter, title: 'Mark up', body: 'Highlight, draw, shapes, arrows, whiteout.' },
   { icon: FormInput, title: 'Fill forms', body: 'Fill AcroForm fields, optionally flatten.' },
@@ -146,13 +146,13 @@ export default function Welcome(): JSX.Element {
       <div className="mx-auto flex min-h-full max-w-5xl flex-col items-center gap-10 px-5 pb-16 pt-28 md:pt-32">
         <div className="flex animate-slide-up flex-col items-center gap-5 text-center">
           <span className="glass inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-            <ShieldCheck size={14} className="text-emerald-500" /> Private by design — your files never leave this device
+            <ShieldCheck size={14} className="text-emerald-500" /> Private by design - your files never leave this device
           </span>
           <h1 className="max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
-            Edit PDFs <span className="text-gradient">beautifully.</span>
+            Edit PDFs <span className="text-gradient">Beautifully.</span>
           </h1>
           <p className="max-w-xl text-base text-slate-600 sm:text-lg dark:text-slate-300">
-            Add text, sign, highlight, fill forms, watermark and rearrange pages — right in your browser, even offline.
+            Add text, sign, highlight, fill forms, watermark and rearrange pages - right in your browser, even offline.
           </p>
           <ul className="flex flex-wrap justify-center gap-2" aria-label="Always included">
             {PROMISES.map((promise) => (

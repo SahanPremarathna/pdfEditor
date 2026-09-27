@@ -16,7 +16,7 @@ export default function SupportBand(): JSX.Element {
         <div className="flex flex-col items-center gap-3 text-center sm:items-start sm:text-left">
           <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Kept free by people like you</h2>
           <p className="max-w-md text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            No ads, no paywall, no data harvesting. If TrueFreePDF saves you a subscription, consider buying me a coffee — it
+            No ads, no paywall, no data harvesting. If TrueFreePDF saves you a subscription, consider buying me a coffee - it
             pays for hosting and new features.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">

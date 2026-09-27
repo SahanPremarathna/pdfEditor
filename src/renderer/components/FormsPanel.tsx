@@ -101,7 +101,7 @@ function FieldRow({ field }: FieldRowProps): JSX.Element {
         </div>
       )}
 
-      {field.type === 'button' && <span className="text-xs text-slate-400">Push button — no value to fill</span>}
+      {field.type === 'button' && <span className="text-xs text-slate-400">Push button - no value to fill</span>}
     </label>
   )
 }

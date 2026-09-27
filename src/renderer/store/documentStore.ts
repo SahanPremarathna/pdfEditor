@@ -530,7 +530,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
 function forcedFlattenNotice(forcedFlatten: boolean): string | null {
   return forcedFlatten
-    ? "Saved with form fields flattened — this document had page changes, so its form couldn't stay fillable."
+    ? "Saved with form fields flattened - this document had page changes, so its form couldn't stay fillable."
     : null
 }
 

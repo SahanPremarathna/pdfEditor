@@ -35,8 +35,8 @@ export async function shareApp(): Promise<ShareOutcome> {
   if (nav.share && window.matchMedia?.('(pointer: coarse)').matches) {
     try {
       await nav.share({
-        title: 'TrueFreePDF — a genuinely free PDF editor',
-        text: 'Edit, sign and fill PDFs for free — no sign-up, no watermark, no export paywall.',
+        title: 'TrueFreePDF - a genuinely free PDF editor',
+        text: 'Edit, sign and fill PDFs for free - no sign-up, no watermark, no export paywall.',
         url
       })
       return 'shared'

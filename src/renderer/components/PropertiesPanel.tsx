@@ -118,7 +118,7 @@ function ShapeProperties({ obj, patch }: TypedPatchProps<ShapeObject>): JSX.Elem
     return (
       <p className="flex gap-2 rounded-xl bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-300">
         <Info size={14} className="mt-px shrink-0" />
-        Whiteout covers content opaquely — this hides pixels, it does not remove them. The text underneath can still be
+        Whiteout covers content opaquely - this hides pixels, it does not remove them. The text underneath can still be
         selected and extracted.
       </p>
     )

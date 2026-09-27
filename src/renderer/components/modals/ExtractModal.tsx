@@ -29,7 +29,7 @@ function ExtractForm(): JSX.Element {
   return (
     <Modal
       title="Extract pages"
-      subtitle="Save selected pages — with all your edits — as a new PDF."
+      subtitle="Save selected pages - with all your edits - as a new PDF."
       icon={<Scissors size={18} />}
       onClose={closeModal}
     >

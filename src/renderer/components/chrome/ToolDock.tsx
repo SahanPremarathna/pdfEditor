@@ -27,7 +27,7 @@ export default function ToolDock(): JSX.Element {
                 type="button"
                 onClick={() => setActiveTool(active && tool.id !== 'select' ? 'select' : tool.id)}
                 className={`icon-btn tip tip-top md:tip-right h-10 w-10 ${active ? 'icon-btn-active' : ''}`}
-                data-tip={`${tool.label}  ·  ${tool.key.toUpperCase()}${tool.hint ? `  —  ${tool.hint}` : ''}`}
+                data-tip={`${tool.label}  ·  ${tool.key.toUpperCase()}${tool.hint ? `  -  ${tool.hint}` : ''}`}
                 aria-label={tool.label}
                 aria-pressed={active}
               >
