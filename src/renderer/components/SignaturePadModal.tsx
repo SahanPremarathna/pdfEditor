@@ -1,3 +1,4 @@
+import { Eraser, Signature } from 'lucide-react'
 import { useState } from 'react'
 import { Layer, Line, Stage } from 'react-konva'
 import type Konva from 'konva'
@@ -5,9 +6,11 @@ import { createPathObject } from '../core/objects'
 import { nextZ } from '../core/zOrder'
 import { EMPTY_ARRAY, useObjectStore } from '../store/objectStore'
 import { useUiStore } from '../store/uiStore'
+import Modal from './modals/Modal'
 
-const PAD_WIDTH_PX = 400
-const PAD_HEIGHT_PX = 150
+const PAD_MAX_WIDTH_PX = 440
+const PAD_HEIGHT_PX = 170
+const INK_COLORS = ['#111827', '#1d4ed8', '#6938ef']
 
 /**
  * Opened whenever `uiStore.signatureRequest` is set (PageCanvas sets it on a
@@ -15,7 +18,8 @@ const PAD_HEIGHT_PX = 150
  * pen-lift strokes on its own small Konva Stage — signatures are vector
  * strokes, not a rasterized screenshot, per the spec's "real PDF content"
  * principle — and on "Done" creates one PathObject (type 'signature') at the
- * page/position the tool was armed at.
+ * page/position the tool was armed at. Pointer events, so mouse, touch and
+ * stylus all draw.
  */
 export default function SignaturePadModal(): JSX.Element | null {
   const signatureRequest = useUiStore((s) => s.signatureRequest)
@@ -27,8 +31,11 @@ export default function SignaturePadModal(): JSX.Element | null {
 
   const [strokes, setStrokes] = useState<number[][]>([])
   const [currentStroke, setCurrentStroke] = useState<number[] | null>(null)
+  const [ink, setInk] = useState(INK_COLORS[0])
 
   if (!signatureRequest) return null
+
+  const padWidth = Math.min(PAD_MAX_WIDTH_PX, window.innerWidth - 72)
 
   const close = (): void => {
     setStrokes([])
@@ -37,17 +44,15 @@ export default function SignaturePadModal(): JSX.Element | null {
     setActiveTool('select')
   }
 
-  const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>): void => {
-    const stage = e.target.getStage()
-    const pos = stage?.getPointerPosition()
+  const handlePointerDown = (e: Konva.KonvaEventObject<PointerEvent>): void => {
+    const pos = e.target.getStage()?.getPointerPosition()
     if (!pos) return
     setCurrentStroke([pos.x, pos.y])
   }
 
-  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>): void => {
+  const handlePointerMove = (e: Konva.KonvaEventObject<PointerEvent>): void => {
     if (!currentStroke) return
-    const stage = e.target.getStage()
-    const pos = stage?.getPointerPosition()
+    const pos = e.target.getStage()?.getPointerPosition()
     if (!pos) return
     setCurrentStroke([...currentStroke, pos.x, pos.y])
   }
@@ -81,7 +86,7 @@ export default function SignaturePadModal(): JSX.Element | null {
 
     const { pageIndex, x, y } = signatureRequest
     const z = nextZ(objectsByPage[pageIndex] ?? EMPTY_ARRAY)
-    const obj = createPathObject('signature', pageIndex, x, y, width, height, relativeStrokes, z)
+    const obj = createPathObject('signature', pageIndex, x, y, width, height, relativeStrokes, z, { stroke: ink })
     addObject(obj)
     selectObject(obj.id)
     close()
@@ -90,57 +95,66 @@ export default function SignaturePadModal(): JSX.Element | null {
   const hasContent = strokes.length > 0 || (currentStroke !== null && currentStroke.length >= 4)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="flex flex-col gap-3 rounded bg-white p-4 shadow-lg">
-        <h2 className="text-sm font-semibold text-slate-700">Draw your signature</h2>
-
-        <div className="rounded border border-dashed border-slate-300 bg-slate-50">
+    <Modal
+      title="Draw your signature"
+      subtitle="Use your mouse, finger or stylus."
+      icon={<Signature size={18} />}
+      onClose={close}
+      widthClass="max-w-lg"
+      footer={
+        <>
+          <button type="button" onClick={close} className="btn btn-ghost">
+            Cancel
+          </button>
+          <button type="button" onClick={handleDone} disabled={!hasContent} className="btn btn-primary">
+            Place signature
+          </button>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <div className="relative overflow-hidden rounded-2xl border border-dashed border-slate-900/15 bg-white touch-none dark:border-white/15">
           <Stage
-            width={PAD_WIDTH_PX}
+            width={padWidth}
             height={PAD_HEIGHT_PX}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={commitStroke}
-            onMouseLeave={commitStroke}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={commitStroke}
+            onPointerLeave={commitStroke}
           >
             <Layer>
               {strokes.map((stroke, i) => (
-                <Line key={i} points={stroke} stroke="#111827" strokeWidth={2} lineCap="round" lineJoin="round" />
+                <Line key={i} points={stroke} stroke={ink} strokeWidth={2} lineCap="round" lineJoin="round" />
               ))}
-              {currentStroke && (
-                <Line points={currentStroke} stroke="#111827" strokeWidth={2} lineCap="round" lineJoin="round" />
-              )}
+              {currentStroke && <Line points={currentStroke} stroke={ink} strokeWidth={2} lineCap="round" lineJoin="round" />}
             </Layer>
           </Stage>
+          <div className="pointer-events-none absolute inset-x-8 bottom-8 border-b border-slate-300" />
+          {!hasContent && (
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-slate-400">
+              Sign here
+            </span>
+          )}
         </div>
-
-        <div className="flex justify-between gap-2 text-sm">
-          <button
-            type="button"
-            onClick={handleClear}
-            className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100"
-          >
-            Clear
-          </button>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={close}
-              className="rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleDone}
-              disabled={!hasContent}
-              className="rounded bg-slate-800 px-3 py-1 text-white hover:bg-slate-700 disabled:opacity-50"
-            >
-              Done
-            </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {INK_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setInk(color)}
+                aria-label={`Ink colour ${color}`}
+                aria-pressed={ink === color}
+                className={`h-6 w-6 rounded-full border-2 transition ${ink === color ? 'scale-110 border-ink-400' : 'border-transparent'}
+                  ${color === '#111827' ? 'bg-gray-900' : color === '#1d4ed8' ? 'bg-blue-700' : 'bg-ink-600'}`}
+              />
+            ))}
           </div>
+          <button type="button" onClick={handleClear} className="btn btn-ghost h-8 px-2.5 text-xs" disabled={!hasContent}>
+            <Eraser size={14} /> Clear
+          </button>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

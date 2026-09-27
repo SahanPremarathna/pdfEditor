@@ -25,6 +25,7 @@ interface PageCanvasProps {
    *  imported), or 'blank' for an inserted page with no pdfjs source at all. */
   source: ResolvedPageSource
   pageIndex: number // stable PageMeta.index, matches object.pageIndex — NOT array position
+  pageNumber: number // 1-indexed visual position, for labelling only
   widthPt: number
   heightPt: number
   scale: number // CSS px per PDF point
@@ -49,6 +50,7 @@ type Draft =
 export default function PageCanvas({
   source,
   pageIndex,
+  pageNumber,
   widthPt,
   heightPt,
   scale,
@@ -232,7 +234,7 @@ export default function PageCanvas({
     setActiveTool('select')
   }
 
-  const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>): void => {
+  const handleStagePointerDown = (e: Konva.KonvaEventObject<PointerEvent>): void => {
     setLastActivePageIndex(pageIndex)
 
     const stage = e.target.getStage()
@@ -278,7 +280,7 @@ export default function PageCanvas({
     selectObject(null)
   }
 
-  const handleStageMouseMove = (e: Konva.KonvaEventObject<MouseEvent>): void => {
+  const handleStagePointerMove = (e: Konva.KonvaEventObject<PointerEvent>): void => {
     if (!draft) return
     const stage = e.target.getStage()
     const pos = stage?.getPointerPosition()
@@ -297,7 +299,7 @@ export default function PageCanvas({
     setDraft({ kind: 'freehand', points: [...draft.points, pos.x, pos.y] })
   }
 
-  const handleStageMouseUp = (): void => {
+  const handleStagePointerUp = (): void => {
     if (!draft) return
     commitDraft(draft)
     setDraft(null)
@@ -357,7 +359,9 @@ export default function PageCanvas({
 
   return (
     <div
-      className="relative mx-auto mb-4 bg-white shadow"
+      className={`page-shadow relative mx-auto mb-6 bg-white ${activeTool === 'select' ? '' : 'touch-none'}`}
+      role="region"
+      aria-label={`Page ${pageNumber}`}
       style={{ width: displayWidth, height: displayHeight }}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -370,7 +374,7 @@ export default function PageCanvas({
           style={{ width: displayWidth, height: displayHeight, display: 'block' }}
         />
       ) : (
-        <div className="h-full w-full bg-slate-200" />
+        <div className="h-full w-full animate-pulse bg-slate-100" />
       )}
 
       {active && (
@@ -378,9 +382,9 @@ export default function PageCanvas({
           width={displayWidth}
           height={displayHeight}
           className="absolute inset-0"
-          onMouseDown={handleStageMouseDown}
-          onMouseMove={handleStageMouseMove}
-          onMouseUp={handleStageMouseUp}
+          onPointerDown={handleStagePointerDown}
+          onPointerMove={handleStagePointerMove}
+          onPointerUp={handleStagePointerUp}
         >
           <Layer>
             {sortedObjects.map(renderObject)}

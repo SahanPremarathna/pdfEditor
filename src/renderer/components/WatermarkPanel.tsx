@@ -1,15 +1,13 @@
+import { ImageIcon, Stamp, Type } from 'lucide-react'
 import type { ChangeEvent } from 'react'
 import { useState } from 'react'
-import { ON_SCREEN_FONT_FAMILIES } from '../core/fontFamilies'
+import { FONT_FAMILY_LABELS, ON_SCREEN_FONT_FAMILIES } from '../core/fontFamilies'
 import { readImageFile } from '../core/imageFiles'
 import { useDocumentStore } from '../store/documentStore'
 import { useUiStore } from '../store/uiStore'
 import { useWatermarkStore } from '../store/watermarkStore'
 import type { OnScreenFontFamily } from '../core/fontFamilies'
-
-const buttonBase = 'h-7 flex-1 rounded border text-sm'
-const buttonInactive = 'border-slate-300 text-slate-600 hover:bg-slate-100'
-const buttonActive = 'border-slate-800 bg-slate-800 text-white'
+import PanelShell, { Field, NumberField } from './PanelShell'
 
 export default function WatermarkPanel(): JSX.Element {
   const config = useWatermarkStore((s) => s.config)
@@ -39,118 +37,81 @@ export default function WatermarkPanel(): JSX.Element {
   }
 
   return (
-    <div className="flex w-56 shrink-0 flex-col gap-3 overflow-y-auto border-l border-slate-200 bg-white p-3 text-sm">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-slate-700">Watermark</h2>
-        <button
-          type="button"
-          onClick={() => setWatermarkPanelOpen(false)}
-          aria-label="Close watermark panel"
-          className="text-slate-400 hover:text-slate-600"
-        >
-          ×
-        </button>
-      </div>
-
-      <label className="flex items-center gap-2">
-        <input type="checkbox" checked={config.enabled} onChange={(e) => updateConfig({ enabled: e.target.checked })} />
-        <span className="text-xs text-slate-500">Enabled</span>
+    <PanelShell title="Watermark" icon={<Stamp size={15} />} onClose={() => setWatermarkPanelOpen(false)}>
+      <label className="flex items-center justify-between rounded-xl bg-slate-900/[0.03] px-3 py-2.5 dark:bg-white/[0.04]">
+        <span className="text-sm font-medium">Show watermark</span>
+        <input
+          type="checkbox"
+          className="checkbox"
+          checked={config.enabled}
+          onChange={(e) => updateConfig({ enabled: e.target.checked })}
+        />
       </label>
 
-      <div className="flex gap-1">
+      <div className="segmented">
         <button
           type="button"
           onClick={() => setType('text')}
-          className={`${buttonBase} ${config.type === 'text' ? buttonActive : buttonInactive}`}
+          className={`segmented-item ${config.type === 'text' ? 'segmented-item-active' : ''}`}
           aria-pressed={config.type === 'text'}
         >
-          Text
+          <Type size={14} /> Text
         </button>
         <button
           type="button"
           onClick={() => setType('image')}
-          className={`${buttonBase} ${config.type === 'image' ? buttonActive : buttonInactive}`}
+          className={`segmented-item ${config.type === 'image' ? 'segmented-item-active' : ''}`}
           aria-pressed={config.type === 'image'}
         >
-          Image
+          <ImageIcon size={14} /> Image
         </button>
       </div>
 
       {config.type === 'text' ? (
         <>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Text</span>
+          <Field label="Text">
             <textarea
               value={config.text}
               onChange={(e) => updateConfig({ text: e.target.value })}
-              className="rounded border border-slate-300 px-2 py-1"
+              className="input textarea"
               rows={2}
             />
-          </label>
+          </Field>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Font family</span>
-            <select
-              value={config.fontFamily}
-              onChange={(e) => updateConfig({ fontFamily: e.target.value })}
-              className="rounded border border-slate-300 px-2 py-1"
-            >
+          <Field label="Font">
+            <select value={config.fontFamily} onChange={(e) => updateConfig({ fontFamily: e.target.value })} className="input">
               {ON_SCREEN_FONT_FAMILIES.map((family: OnScreenFontFamily) => (
                 <option key={family} value={family}>
-                  {family}
+                  {FONT_FAMILY_LABELS[family]}
                 </option>
               ))}
             </select>
-          </label>
+          </Field>
 
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Font size</span>
-            <input
-              type="number"
-              min={1}
-              value={config.fontSize}
-              onChange={(e) => updateConfig({ fontSize: Number(e.target.value) })}
-              className="rounded border border-slate-300 px-2 py-1"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Colour</span>
-            <input
-              type="color"
-              value={config.color}
-              onChange={(e) => updateConfig({ color: e.target.value })}
-              className="h-8 w-full rounded border border-slate-300"
-            />
-          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <NumberField label="Size" value={config.fontSize} min={1} max={500} suffix="pt" onChange={(v) => updateConfig({ fontSize: v })} />
+            <Field label="Colour">
+              <input type="color" value={config.color} onChange={(e) => updateConfig({ color: e.target.value })} className="color-input" />
+            </Field>
+          </div>
         </>
       ) : (
         <>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Image</span>
-            <input type="file" accept="image/png,image/jpeg" onChange={handleImageFile} className="text-xs" />
+          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-slate-900/15 p-3 text-center text-xs text-slate-500 transition hover:border-ink-400 dark:border-white/15">
+            {config.dataUrl ? (
+              <img src={config.dataUrl} alt="Watermark preview" className="max-h-24 rounded-lg" />
+            ) : (
+              <ImageIcon size={22} className="text-slate-400" />
+            )}
+            <span>{config.dataUrl ? 'Replace image' : 'Choose a PNG or JPEG'}</span>
+            <input type="file" accept="image/png,image/jpeg" onChange={handleImageFile} className="hidden" />
           </label>
 
-          {config.dataUrl && (
-            <img src={config.dataUrl} alt="Watermark preview" className="max-h-24 rounded border border-slate-300" />
-          )}
-
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-500">Scale</span>
-            <input
-              type="number"
-              min={0.05}
-              step={0.05}
-              value={config.scale}
-              onChange={(e) => updateConfig({ scale: Number(e.target.value) })}
-              className="rounded border border-slate-300 px-2 py-1"
-            />
-          </label>
+          <NumberField label="Scale" value={config.scale} min={0.05} max={20} step={0.05} suffix="×" onChange={(v) => updateConfig({ scale: v })} />
         </>
       )}
 
-      <label className="flex flex-col gap-1">
-        <span className="text-xs text-slate-500">Opacity ({Math.round(config.opacity * 100)}%)</span>
+      <Field label={`Opacity · ${Math.round(config.opacity * 100)}%`}>
         <input
           type="range"
           min={0}
@@ -158,21 +119,21 @@ export default function WatermarkPanel(): JSX.Element {
           step={0.01}
           value={config.opacity}
           onChange={(e) => updateConfig({ opacity: Number(e.target.value) })}
+          className="range"
         />
-      </label>
+      </Field>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-xs text-slate-500">Rotation (degrees)</span>
-        <input
-          type="number"
-          value={config.rotationDeg}
-          onChange={(e) => updateConfig({ rotationDeg: Number(e.target.value) })}
-          className="rounded border border-slate-300 px-2 py-1"
-        />
-      </label>
+      <NumberField
+        label="Rotation"
+        value={config.rotationDeg}
+        min={-360}
+        max={360}
+        suffix="°"
+        onChange={(v) => updateConfig({ rotationDeg: v })}
+      />
 
-      <div className="flex flex-col gap-1 border-t border-slate-200 pt-2">
-        <span className="text-xs text-slate-500">Page range (of {visiblePageCount})</span>
+      <div className="flex flex-col gap-2 border-t border-slate-900/[0.06] pt-3 dark:border-white/[0.06]">
+        <span className="field-label">Pages (of {visiblePageCount})</span>
         <div className="flex items-center gap-2">
           <input
             type="number"
@@ -180,7 +141,8 @@ export default function WatermarkPanel(): JSX.Element {
             max={visiblePageCount}
             value={rangeFrom}
             onChange={(e) => handleRangeChange(Number(e.target.value), rangeTo)}
-            className="w-16 rounded border border-slate-300 px-2 py-1"
+            className="input"
+            aria-label="From page"
           />
           <span className="text-xs text-slate-500">to</span>
           <input
@@ -189,18 +151,17 @@ export default function WatermarkPanel(): JSX.Element {
             max={visiblePageCount}
             value={rangeTo}
             onChange={(e) => handleRangeChange(rangeFrom, Number(e.target.value))}
-            className="w-16 rounded border border-slate-300 px-2 py-1"
+            className="input"
+            aria-label="To page"
           />
         </div>
-        <button
-          type="button"
-          onClick={() => applyRange(rangeFrom, rangeTo)}
-          className="mt-1 rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-100"
-        >
-          Apply range
+        <button type="button" onClick={() => applyRange(rangeFrom, rangeTo)} className="btn btn-outline w-full">
+          Apply to pages {rangeFrom}–{rangeTo}
         </button>
-        <span className="text-xs text-slate-400">Applies to {config.pageIndices.length} page(s)</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">
+          Currently on {config.pageIndices.length} page{config.pageIndices.length === 1 ? '' : 's'} · drag it on the page to move it
+        </span>
       </div>
-    </div>
+    </PanelShell>
   )
 }

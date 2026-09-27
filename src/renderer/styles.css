@@ -1,1 +1,297 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+/* Theme switch is driven by <html data-theme="light|dark"> (see hooks/useTheme). */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Bundled Indic faces for on-screen object text — same files export embeds. */
+@font-face {
+  font-family: "Inkline Noto Sinhala";
+  src: url("/fonts/NotoSansSinhala-Regular.ttf") format("truetype");
+  font-weight: 100 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inkline Noto Sinhala";
+  src: url("/fonts/NotoSansSinhala-Bold.ttf") format("truetype");
+  font-weight: 700 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inkline Noto Tamil";
+  src: url("/fonts/NotoSansTamil-Regular.ttf") format("truetype");
+  font-weight: 100 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inkline Noto Tamil";
+  src: url("/fonts/NotoSansTamil-Bold.ttf") format("truetype");
+  font-weight: 700 900;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-ink-50: #f4f3ff;
+  --color-ink-100: #ebe9fe;
+  --color-ink-200: #d9d6fe;
+  --color-ink-300: #bdb4fe;
+  --color-ink-400: #9b8afb;
+  --color-ink-500: #7a5af8;
+  --color-ink-600: #6938ef;
+  --color-ink-700: #5925dc;
+  --color-ink-800: #4a1fb8;
+  --color-ink-900: #3e1c96;
+
+  --animate-float-slow: float 18s ease-in-out infinite;
+  --animate-float-slower: float 26s ease-in-out infinite reverse;
+  --animate-fade-in: fade-in 0.18s ease-out both;
+  --animate-pop-in: pop-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  --animate-slide-in-right: slide-in-right 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-slide-in-left: slide-in-left 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-slide-up: slide-up 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes float {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    33% { transform: translate3d(4%, -6%, 0) scale(1.08); }
+    66% { transform: translate3d(-5%, 4%, 0) scale(0.95); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(16px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slide-in-left {
+    from { opacity: 0; transform: translateX(-16px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+:root {
+  color-scheme: light;
+  --app-bg: #eef0f7;
+  --app-fg: #151528;
+  --blob-a: rgba(122, 90, 248, 0.28);
+  --blob-b: rgba(56, 189, 248, 0.22);
+  --blob-c: rgba(244, 114, 182, 0.18);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(20, 20, 60, 0.08);
+  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 12px 40px -12px rgba(30, 20, 80, 0.25);
+  --page-shadow: 0 2px 6px rgba(20, 20, 60, 0.08), 0 20px 50px -20px rgba(20, 20, 60, 0.35);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --app-bg: #0b0b1a;
+  --app-fg: #ececf6;
+  --blob-a: rgba(122, 90, 248, 0.35);
+  --blob-b: rgba(34, 211, 238, 0.16);
+  --blob-c: rgba(236, 72, 153, 0.18);
+  --glass: rgba(22, 22, 42, 0.66);
+  --glass-strong: rgba(26, 26, 48, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 16px 50px -12px rgba(0, 0, 0, 0.7);
+  --page-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 30px 60px -24px rgba(0, 0, 0, 0.8);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--app-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+@utility bg-accent-gradient {
+  background-image: linear-gradient(135deg, var(--color-ink-500), var(--color-ink-600) 55%, #c026d3);
+}
+
+/* Tooltip placements are utilities (not components) so they accept variants
+   like md:tip-right. Each resets the other placements' offsets. */
+@utility tip-bottom {
+  &::after {
+    inset: 100% auto auto 50%;
+    margin: 0.5rem 0 0 0;
+    translate: -50% 0;
+  }
+}
+@utility tip-right {
+  &::after {
+    inset: 50% auto auto 100%;
+    margin: 0 0 0 0.75rem;
+    translate: 0 -50%;
+  }
+}
+@utility tip-top {
+  &::after {
+    inset: auto auto 100% 50%;
+    margin: 0 0 0.5rem 0;
+    translate: -50% 0;
+  }
+}
+@utility tip-left {
+  &::after {
+    inset: 50% 100% auto auto;
+    margin: 0 0.75rem 0 0;
+    translate: 0 -50%;
+  }
+}
+
+@layer components {
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(18px) saturate(1.6);
+    -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  }
+  .glass-strong {
+    background: var(--glass-strong);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  }
+  .page-shadow {
+    box-shadow: var(--page-shadow);
+  }
+
+  .ambient-blob-a {
+    background: radial-gradient(circle at center, var(--blob-a), transparent 65%);
+  }
+  .ambient-blob-b {
+    background: radial-gradient(circle at center, var(--blob-b), transparent 65%);
+  }
+  .ambient-blob-c {
+    background: radial-gradient(circle at center, var(--blob-c), transparent 65%);
+  }
+  .dot-grid {
+    background-image: radial-gradient(rgba(120, 120, 160, 0.18) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-ink-500 via-fuchsia-500 to-sky-400 bg-clip-text text-transparent;
+  }
+
+  .icon-btn {
+    @apply relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-600 transition
+      hover:bg-slate-900/[0.06] hover:text-slate-900 active:scale-95 disabled:pointer-events-none disabled:opacity-35
+      dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white;
+  }
+  .icon-btn-active {
+    @apply bg-accent-gradient text-white shadow-lg shadow-ink-600/30 hover:text-white dark:hover:text-white;
+  }
+
+  .btn {
+    @apply inline-flex h-9 items-center justify-center gap-2 rounded-xl px-3.5 text-sm font-medium transition active:scale-[0.98]
+      disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply bg-accent-gradient text-white shadow-lg shadow-ink-600/25 hover:brightness-110;
+  }
+  .btn-ghost {
+    @apply text-slate-700 hover:bg-slate-900/[0.06] dark:text-slate-200 dark:hover:bg-white/10;
+  }
+  .btn-outline {
+    @apply border border-slate-900/10 bg-white/60 text-slate-700 hover:bg-white dark:border-white/10 dark:bg-white/5
+      dark:text-slate-200 dark:hover:bg-white/10;
+  }
+  .btn-danger {
+    @apply border border-rose-500/30 text-rose-600 hover:bg-rose-500/10 dark:text-rose-400;
+  }
+
+  .field-label {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400;
+  }
+  .input {
+    @apply h-9 w-full rounded-lg border border-slate-900/10 bg-white/80 px-2.5 text-sm text-slate-800 outline-none transition
+      placeholder:text-slate-400 focus:border-ink-400 focus:ring-4 focus:ring-ink-500/15 disabled:opacity-50
+      dark:border-white/10 dark:bg-white/5 dark:text-slate-100;
+  }
+  .textarea {
+    @apply h-auto py-2;
+  }
+  .color-input {
+    @apply h-9 w-full cursor-pointer rounded-lg border border-slate-900/10 bg-transparent p-1 dark:border-white/10;
+  }
+  .range {
+    @apply w-full cursor-pointer accent-ink-500;
+  }
+  .checkbox {
+    @apply h-4 w-4 cursor-pointer rounded accent-ink-500;
+  }
+  .segmented {
+    @apply flex rounded-xl bg-slate-900/[0.05] p-1 dark:bg-white/[0.06];
+  }
+  .segmented-item {
+    @apply flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg text-xs font-medium text-slate-600 transition
+      hover:text-slate-900 dark:text-slate-300 dark:hover:text-white;
+  }
+  .segmented-item-active {
+    @apply bg-white text-slate-900 shadow-sm dark:bg-white/15 dark:text-white;
+  }
+  .kbd {
+    @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-slate-900/10 bg-white/70 px-1.5
+      font-mono text-[10px] font-semibold text-slate-600 dark:border-white/15 dark:bg-white/10 dark:text-slate-300;
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-slate-700 transition
+      hover:bg-slate-900/[0.06] disabled:pointer-events-none disabled:opacity-40 dark:text-slate-200 dark:hover:bg-white/10;
+  }
+
+  /* Tooltip: put `data-tip` on a `.tip` element. */
+  .tip {
+    @apply relative;
+  }
+  .tip::after {
+    content: attr(data-tip);
+    @apply pointer-events-none absolute z-50 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-[11px] font-medium
+      text-white opacity-0 shadow-lg transition-opacity delay-0 dark:bg-slate-100 dark:text-slate-900;
+  }
+  .tip:hover::after,
+  .tip:focus-visible::after {
+    @apply opacity-100 delay-300;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 120, 160, 0.35) transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Touch screens have no hover — tooltips would only get stuck on tap. */
+@media (hover: none) {
+  .tip::after {
+    display: none;
+  }
+}
