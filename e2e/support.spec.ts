@@ -4,7 +4,7 @@ import { E2E_KOFI_URL, forceInputFallback, openFixture, SHOTS } from './helpers'
 
 /*
  * The donation experience: always optional, never in the way. Saving must
- * work exactly as before; the thank-you card only appears after the 2nd
+ * work exactly as before; the thank-you card only appears after an
  * export and can be turned off for good.
  */
 
@@ -26,6 +26,11 @@ test('welcome page makes the free-forever promise and offers support', async ({ 
   await expect(kofi).toHaveAttribute('href', E2E_KOFI_URL)
   await expect(kofi).toHaveAttribute('target', '_blank')
   await expect(kofi).toHaveAttribute('rel', /noopener/)
+
+  // Visible without scrolling: the coffee link right under the hero.
+  const coffee = page.getByRole('link', { name: /Buy me a coffee/ })
+  await expect(coffee).toBeInViewport()
+  await expect(coffee).toHaveAttribute('href', E2E_KOFI_URL)
 
   await page.waitForTimeout(800)
   await page.screenshot({ path: join(SHOTS, 'support-welcome-light.png'), fullPage: true })
@@ -60,14 +65,11 @@ test('support dialog: Ko-fi opens in a new tab, share copies the link', async ({
   await expect(dialog).toBeHidden()
 })
 
-test('thank-you card appears after the 2nd export and can be switched off for good', async ({ page }) => {
+test('thank-you card appears after an export and can be switched off for good', async ({ page }) => {
   await forceInputFallback(page)
   await page.goto('/')
   await openFixture(page)
   const card = page.getByRole('complementary', { name: 'Support Inkline' })
-
-  await saveOnce(page)
-  await page.waitForTimeout(400)
   await expect(card).toHaveCount(0)
 
   await saveOnce(page)

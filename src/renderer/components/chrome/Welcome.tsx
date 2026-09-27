@@ -1,6 +1,7 @@
 import {
   Check,
   Clock,
+  Coffee,
   Heart,
   FileText,
   FileUp,
@@ -16,11 +17,12 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getRecentEntries, platform, type RecentEntry } from '../../platform'
-import { MAKER_NAME } from '../../config/support'
+import { KOFI_URL, MAKER_NAME } from '../../config/support'
 import { useDocumentStore } from '../../store/documentStore'
 import { useUiStore } from '../../store/uiStore'
 import FreeForeverSection from '../support/FreeForeverSection'
 import SupportBand from '../support/SupportBand'
+import { rememberSupport } from '../support/supportActions'
 
 const PROMISES = ['100% free', 'No sign-up', 'No watermark', 'No uploads']
 
@@ -188,7 +190,33 @@ export default function Welcome(): JSX.Element {
           </div>
         </button>
 
+        {KOFI_URL ? (
+          <a
+            href={KOFI_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={rememberSupport}
+            className="glass group -mt-4 inline-flex animate-pop-in items-center gap-2 rounded-full py-1.5 pl-1.5 pr-4 text-sm font-medium text-slate-700 transition hover:-translate-y-0.5 hover:shadow-lg dark:text-slate-200"
+          >
+            <span className="bg-kofi-gradient flex h-7 w-7 items-center justify-center rounded-full text-white shadow-md shadow-rose-500/30 transition group-hover:rotate-[-8deg] group-hover:scale-110">
+              <Coffee size={15} strokeWidth={2.3} />
+            </span>
+            Love Inkline? <span className="font-semibold text-rose-600 dark:text-rose-300">Buy me a coffee</span>
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => openModal('support')}
+            className="glass -mt-4 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-rose-600 dark:text-rose-300"
+          >
+            <Heart size={14} className="fill-current" /> Support Inkline
+          </button>
+        )}
+
         <RecentFiles />
+
+        <FreeForeverSection />
+        <SupportBand />
 
         <section className="grid w-full max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, body }, i) => (
@@ -204,9 +232,6 @@ export default function Welcome(): JSX.Element {
             </div>
           ))}
         </section>
-
-        <FreeForeverSection />
-        <SupportBand />
 
         <footer className="flex flex-col items-center gap-2 text-center text-xs text-slate-500 dark:text-slate-400">
           <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">

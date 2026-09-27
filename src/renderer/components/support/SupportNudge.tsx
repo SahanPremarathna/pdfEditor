@@ -11,7 +11,7 @@ const AUTO_HIDE_MS = 20_000
 /**
  * A small thank-you card that can appear AFTER a successful export — never
  * before or during one, and never blocking anything. Frequency rules live in
- * core/supportNudge.ts (2nd export onward, at most weekly, quiet after
+ * core/supportNudge.ts (first export onward, at most weekly, quiet after
  * supporting, off for good on "Don't show again").
  */
 export default function SupportNudge(): JSX.Element | null {

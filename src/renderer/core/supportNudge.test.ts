@@ -19,12 +19,12 @@ const afterExports = (n: number): typeof FRESH_NUDGE_STATE => {
 }
 
 describe('shouldShowNudge', () => {
-  it('never shows after the first export', () => {
-    expect(shouldShowNudge(afterExports(1), T0)).toBe(false)
+  it('never shows before any export', () => {
+    expect(shouldShowNudge(afterExports(0), T0)).toBe(false)
   })
 
-  it('shows from the second export', () => {
-    expect(shouldShowNudge(afterExports(2), T0)).toBe(true)
+  it('shows from the first export', () => {
+    expect(shouldShowNudge(afterExports(1), T0)).toBe(true)
   })
 
   it('waits a week between showings', () => {

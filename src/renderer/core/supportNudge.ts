@@ -13,7 +13,7 @@ export interface NudgeState {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
-export const FIRST_NUDGE_AT_EXPORT = 2
+export const FIRST_NUDGE_AT_EXPORT = 1
 export const NUDGE_INTERVAL_MS = 7 * DAY_MS
 export const QUIET_AFTER_SUPPORT_MS = 60 * DAY_MS
 
@@ -25,7 +25,7 @@ export function recordExport(state: NudgeState): NudgeState {
 
 export function shouldShowNudge(state: NudgeState, now: number): boolean {
   if (state.dismissedForever) return false
-  if (state.exports < FIRST_NUDGE_AT_EXPORT) return false
+  if (state.exports < FIRST_NUDGE_AT_EXPORT) return false // before any successful export
   if (state.supportedAt !== null && now - state.supportedAt < QUIET_AFTER_SUPPORT_MS) return false
   return state.lastShownAt === null || now - state.lastShownAt >= NUDGE_INTERVAL_MS
 }

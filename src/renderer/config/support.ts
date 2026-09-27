@@ -25,7 +25,11 @@ function httpsUrl(raw: string | undefined): string | null {
   }
 }
 
-export const KOFI_URL = kofiUrl(import.meta.env.VITE_KOFI_URL)
+/** Built-in default so every deployment asks for the right page; set
+ *  VITE_KOFI_URL to override it (e.g. for a fork). */
+const DEFAULT_KOFI_URL = 'https://ko-fi.com/sahantp'
+
+export const KOFI_URL = kofiUrl(import.meta.env.VITE_KOFI_URL) ?? kofiUrl(DEFAULT_KOFI_URL)
 export const MAKER_NAME = import.meta.env.VITE_MAKER_NAME?.trim() || null
 export const REPO_URL = httpsUrl(import.meta.env.VITE_REPO_URL)
 
