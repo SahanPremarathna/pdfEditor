@@ -1,3 +1,4 @@
+import { platform } from '../platform'
 import { useEffect } from 'react'
 import { useDocumentStore } from '../store/documentStore'
 
@@ -11,7 +12,7 @@ import { useDocumentStore } from '../store/documentStore'
  */
 export function useLaunchFileOpen(): void {
   useEffect(() => {
-    void window.api.getLaunchPath().then((path) => {
+    void platform().getLaunchPath().then((path) => {
       if (path) void useDocumentStore.getState().openPath(path)
     })
   }, [])

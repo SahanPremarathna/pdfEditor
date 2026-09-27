@@ -1,3 +1,6 @@
+// fontkit's bundled Indic shaper (used for Sinhala/Tamil) is compiled with
+// regenerator and expects its runtime as a global.
+import 'regenerator-runtime/runtime'
 import fontkit from '@pdf-lib/fontkit'
 import { type PDFDocument, type PDFFont, StandardFonts } from 'pdf-lib'
 

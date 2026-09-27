@@ -4,22 +4,47 @@ import { normalizeRotation, type PageRotation } from './coords'
 
 export type { PDFDocumentProxy }
 
+const PDFJS_ASSET_BASE = `${import.meta.env.BASE_URL}pdfjs/`
+
+/** pdf.js PasswordResponses.INCORRECT_PASSWORD (NEED_PASSWORD is 1). */
+const INCORRECT_PASSWORD_CODE = 2
+
+/** Thrown by loadDocument when the file is encrypted with a user password.
+ *  `incorrect` separates "no password supplied yet" from "wrong password",
+ *  so the UI can prompt first and re-prompt with an error afterwards. */
+export class PasswordRequiredError extends Error {
+  readonly incorrect: boolean
+  constructor(incorrect: boolean) {
+    super(incorrect ? 'Incorrect password.' : 'This PDF is password-protected.')
+    this.name = 'PasswordRequiredError'
+    this.incorrect = incorrect
+  }
+}
+
 /**
  * pdfjs-dist's `PasswordException` (unlike pdf-lib's tslib-downleveled error
  * classes elsewhere in this app) has a correctly-set-up prototype chain, so
- * `instanceof` genuinely works here — no message-sniffing needed. Detection
- * only: this rewrites to one friendly message regardless of whether the file
- * needs a password at all or a wrong one was supplied (PasswordResponses'
- * NEED_PASSWORD vs INCORRECT_PASSWORD), since there is no retry/prompt UI to
- * make that distinction meaningful.
+ * `instanceof` genuinely works here — no message-sniffing needed.
  */
-export async function loadDocument(bytes: Uint8Array): Promise<PDFDocumentProxy> {
-  const task = getDocument({ data: bytes })
+export async function loadDocument(bytes: Uint8Array, password?: string): Promise<PDFDocumentProxy> {
+  const task = getDocument({
+    data: bytes,
+    ...(password === undefined ? {} : { password }),
+    // Same-origin copies of pdf.js's runtime data (see vite.config.ts): CMaps
+    // for CJK text, the 14 standard fonts for PDFs that don't embed them, and
+    // the wasm image decoders (JPEG 2000, JBIG2). Without them such pages
+    // render with substituted glyphs or missing images.
+    cMapUrl: `${PDFJS_ASSET_BASE}cmaps/`,
+    cMapPacked: true,
+    standardFontDataUrl: `${PDFJS_ASSET_BASE}standard_fonts/`,
+    wasmUrl: `${PDFJS_ASSET_BASE}wasm/`,
+    iccUrl: `${PDFJS_ASSET_BASE}iccs/`
+  })
   try {
     return await task.promise
   } catch (err) {
     if (err instanceof PasswordException) {
-      throw new Error('This PDF is password-protected. Inkline cannot open password-protected PDFs yet.')
+      throw new PasswordRequiredError(err.code === INCORRECT_PASSWORD_CODE)
     }
     throw err
   }

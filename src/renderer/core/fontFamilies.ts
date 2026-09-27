@@ -1,17 +1,30 @@
 /**
- * On-screen font family keys for Phase 3. These are opaque keys stored on
- * TextObject.fontFamily and mapped here to a CSS font stack purely for
- * Konva/DOM rendering — they are NOT yet reconciled with fonts.ts's real
- * pdf-lib/fontkit embedding registry (no TTFs are bundled under
- * resources/fonts/ yet). That reconciliation happens at Phase 4 export time.
+ * On-screen font family keys, stored on TextObject.fontFamily and mapped
+ * here to a CSS font stack for Konva/DOM rendering.
+ *
+ * Each stack LEADS with fonts metric-compatible with the PDF standard font
+ * export uses for that key (Arial/Liberation Sans ≈ Helvetica, Times New
+ * Roman/Liberation Serif ≈ Times, Courier New/Liberation Mono ≈ Courier), so
+ * on-screen line wrapping matches the saved PDF. The bundled Noto Sinhala/
+ * Tamil faces (declared in styles.css) come next, so those scripts render on
+ * screen with the same glyphs export embeds.
  */
 export const ON_SCREEN_FONT_FAMILIES = ['sans', 'serif', 'mono'] as const
 export type OnScreenFontFamily = (typeof ON_SCREEN_FONT_FAMILIES)[number]
 
+const INDIC_FALLBACKS = '"Inkline Noto Sinhala", "Inkline Noto Tamil"'
+
 const FONT_FAMILY_CSS: Record<OnScreenFontFamily, string> = {
-  sans: '"Inter", "Segoe UI", Arial, sans-serif',
-  serif: 'Georgia, "Times New Roman", serif',
-  mono: '"Consolas", "Courier New", monospace'
+  sans: `Arial, Helvetica, "Liberation Sans", Arimo, ${INDIC_FALLBACKS}, sans-serif`,
+  serif: `"Times New Roman", Times, "Liberation Serif", Tinos, ${INDIC_FALLBACKS}, serif`,
+  mono: `"Courier New", Courier, "Liberation Mono", Cousine, ${INDIC_FALLBACKS}, monospace`
+}
+
+/** Human-readable names for the family picker. */
+export const FONT_FAMILY_LABELS: Record<OnScreenFontFamily, string> = {
+  sans: 'Sans (Helvetica)',
+  serif: 'Serif (Times)',
+  mono: 'Mono (Courier)'
 }
 
 function isOnScreenFontFamily(family: string): family is OnScreenFontFamily {

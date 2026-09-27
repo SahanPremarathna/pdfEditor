@@ -1,3 +1,4 @@
+import { platform } from '../platform'
 import { useEffect } from 'react'
 import { useDocumentStore } from '../store/documentStore'
 
@@ -21,13 +22,13 @@ export function useSaveShortcut(): void {
   }, [])
 
   useEffect(() => {
-    return window.api.onRequestSaveBeforeClose(() => {
+    return platform().onRequestSaveBeforeClose(() => {
       void useDocumentStore
         .getState()
         .save()
         .then(() => {
           const { isDirty, error } = useDocumentStore.getState()
-          window.api.notifySaveBeforeCloseResult(!isDirty && !error)
+          platform().notifySaveBeforeCloseResult(!isDirty && !error)
         })
     })
   }, [])

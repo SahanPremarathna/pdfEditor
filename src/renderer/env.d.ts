@@ -1,21 +1,11 @@
 /// <reference types="vite/client" />
 
-import type { OpenDialogResult } from '../shared/types'
+import type { PlatformApi } from './platform/types'
 
 declare global {
   interface Window {
-    api: {
-      openDialog: () => Promise<OpenDialogResult | null>
-      readFile: (path: string) => Promise<Uint8Array>
-      save: (path: string, bytes: Uint8Array) => Promise<void>
-      saveAs: (defaultName: string, bytes: Uint8Array) => Promise<string | null>
-      notifyDirty: (isDirty: boolean) => void
-      onRequestSaveBeforeClose: (cb: () => void) => () => void
-      notifySaveBeforeCloseResult: (success: boolean) => void
-      getRecent: () => Promise<string[]>
-      getLaunchPath: () => Promise<string | null>
-      onMenuAction: (cb: (action: string) => void) => () => void
-    }
+    /** Present only under the Electron preload — go through platform() instead of reading this directly. */
+    api?: PlatformApi
   }
 }
 

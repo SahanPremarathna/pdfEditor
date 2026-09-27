@@ -26,6 +26,15 @@ import { normalizeFontFamily, type OnScreenFontFamily } from './fontFamilies'
 import { createFontRegistry, type FontRegistry } from './fonts'
 import { createImageRegistry, type ImageRegistry } from './images'
 import { wrapText } from './textWrap'
+import {
+  assignFontRuns,
+  isWinAnsiEncodable,
+  segmentByScript,
+  UNICODE_FALLBACK_FONT_FILES,
+  unicodeFontFile,
+  type Script
+} from './unicodeText'
+import type { FontLoader } from './fontAssets'
 import type {
   FormField,
   ImageObject,
@@ -80,15 +89,90 @@ const STANDARD_FONTS_BY_FAMILY: Record<
 }
 
 /** Resolves a TextObject's on-screen fontFamily + bold/italic flags to the
- *  matching pdf-lib StandardFonts member. No real TTFs are bundled yet
- *  (deferred past Phase 2/3), so export is WinAnsi-only via pdf-lib's 14
- *  built-in fonts — a known, already-flagged limitation, not fixed here. */
+ *  matching pdf-lib StandardFonts member — used whenever the text is
+ *  WinAnsi-encodable (see resolveTextFace for everything else). */
 export function resolveStandardFont(family: string, bold: boolean, italic: boolean): StandardFonts {
   const variants = STANDARD_FONTS_BY_FAMILY[normalizeFontFamily(family)]
   if (bold && italic) return variants.boldItalic
   if (bold) return variants.bold
   if (italic) return variants.italic
   return variants.regular
+}
+
+export interface ExportOptions {
+  /** Supplies bundled TTF bytes by file name — needed only when some text
+   *  falls outside WinAnsi. Omitted, such text fails with a clear error. */
+  loadFont?: FontLoader
+}
+
+/** A run of text drawn with one concrete font. */
+interface FontRun {
+  text: string
+  font: PDFFont
+}
+
+/**
+ * What drawTextObject needs from "a font": a single standard font, or a
+ * composite of bundled TTFs chosen per script run. `ascent` always comes
+ * from the family's standard font, so the first baseline sits at the same
+ * place whichever font path a given object ends up on.
+ */
+interface TextFace {
+  ascentAtSize: (size: number) => number
+  runs: (text: string) => FontRun[]
+}
+
+function faceWidth(face: TextFace, text: string, size: number): number {
+  return face.runs(text).reduce((sum, run) => sum + run.font.widthOfTextAtSize(run.text, size), 0)
+}
+
+async function resolveTextFace(
+  text: string,
+  family: string,
+  bold: boolean,
+  italic: boolean,
+  registry: FontRegistry,
+  options: ExportOptions
+): Promise<TextFace> {
+  const standard = registry.embedStandard(resolveStandardFont(family, bold, italic))
+  const ascentAtSize = (size: number): number => standard.heightAtSize(size, { descender: false })
+  if (isWinAnsiEncodable(text)) {
+    return { ascentAtSize, runs: (s) => (s ? [{ text: s, font: standard }] : []) }
+  }
+
+  const { loadFont } = options
+  if (!loadFont) {
+    throw new Error('This text uses characters that need a bundled font, but none is available.')
+  }
+  const fonts = new Map<string, { font: PDFFont; glyphs: Set<number> }>()
+  const load = async (file: string): Promise<void> => {
+    if (fonts.has(file)) return
+    registry.registerSource({ family: file, bytes: await loadFont(file) })
+    const font = await registry.embed(file)
+    fonts.set(file, { font, glyphs: new Set(font.getCharacterSet()) })
+  }
+
+  const plain = text.replace(/[\r\n]/g, '')
+  const preferred = (script: Script): string => unicodeFontFile(family, bold, italic, script)
+  const scripts = new Set<Script>(['base', ...segmentByScript(plain).map((r) => r.script)])
+  for (const script of scripts) await load(preferred(script))
+
+  const hasGlyph = (file: string, code: number): boolean => fonts.get(file)?.glyphs.has(code) ?? false
+  // Symbol fallbacks are only fetched when the script fonts leave a gap.
+  const uncovered = assignFontRuns(plain, preferred, [], hasGlyph).some((run) =>
+    [...run.text].some((ch) => !hasGlyph(run.key, ch.codePointAt(0) ?? 0) && !/[‌‍]/.test(ch))
+  )
+  const fallbacks = uncovered ? UNICODE_FALLBACK_FONT_FILES : []
+  for (const file of fallbacks) await load(file)
+
+  return {
+    ascentAtSize,
+    runs: (s) =>
+      assignFontRuns(s, preferred, fallbacks, hasGlyph).map((run) => ({
+        text: run.text,
+        font: fonts.get(run.key)?.font ?? standard
+      }))
+  }
 }
 
 function alignOffset(align: TextObject['align'], lineWidthPt: number, boxWidthPt: number): number {
@@ -102,36 +186,40 @@ function alignOffset(align: TextObject['align'], lineWidthPt: number, boxWidthPt
   }
 }
 
+/** Each wrapped line is drawn run by run (one run per font), advancing along
+ *  the object's own local x axis — rotatedObjectPoint maps every run origin,
+ *  so mixed-script lines rotate together exactly like single-font ones. */
 function drawTextObject(
   page: PDFPage,
   obj: TextObject,
-  font: PDFFont,
+  face: TextFace,
   cropBox: CropBox,
   pageRotation: PageRotation
 ): void {
-  const ascentPt = font.heightAtSize(obj.fontSize, { descender: false })
+  const ascentPt = face.ascentAtSize(obj.fontSize)
   const lineHeightPt = obj.fontSize * obj.lineHeight
-  const lines = wrapText(obj.text, obj.width, (s) => font.widthOfTextAtSize(s, obj.fontSize))
+  const lines = wrapText(obj.text, obj.width, (s) => faceWidth(face, s, obj.fontSize))
   const rotateDegrees = objectRotationToDrawRotation(obj.rotation, pageRotation)
   const color = hexToRgbColor(obj.color)
 
   lines.forEach((line, i) => {
-    const lineWidthPt = font.widthOfTextAtSize(line, obj.fontSize)
-    const localOffset = {
-      x: alignOffset(obj.align, lineWidthPt, obj.width),
-      y: ascentPt + i * lineHeightPt
-    }
-    const origin = rotatedObjectPoint({ x: obj.x, y: obj.y }, localOffset, obj.rotation, cropBox, pageRotation)
+    const lineWidthPt = faceWidth(face, line, obj.fontSize)
+    let advancePt = alignOffset(obj.align, lineWidthPt, obj.width)
 
-    page.drawText(line, {
-      x: origin.x,
-      y: origin.y,
-      size: obj.fontSize,
-      font,
-      color,
-      opacity: obj.opacity,
-      rotate: degrees(rotateDegrees)
-    })
+    for (const run of face.runs(line)) {
+      const localOffset = { x: advancePt, y: ascentPt + i * lineHeightPt }
+      const origin = rotatedObjectPoint({ x: obj.x, y: obj.y }, localOffset, obj.rotation, cropBox, pageRotation)
+      page.drawText(run.text, {
+        x: origin.x,
+        y: origin.y,
+        size: obj.fontSize,
+        font: run.font,
+        color,
+        opacity: obj.opacity,
+        rotate: degrees(rotateDegrees)
+      })
+      advancePt += run.font.widthOfTextAtSize(run.text, obj.fontSize)
+    }
   })
 }
 
@@ -290,7 +378,8 @@ async function drawObjectsForPage(
   page: PDFPage,
   objects: PdfObject[],
   registry: FontRegistry,
-  imageRegistry: ImageRegistry
+  imageRegistry: ImageRegistry,
+  options: ExportOptions
 ): Promise<void> {
   const cropBox = page.getCropBox()
   const pageRotation = normalizeRotation(page.getRotation().angle)
@@ -299,8 +388,9 @@ async function drawObjectsForPage(
   for (const obj of sorted) {
     switch (obj.type) {
       case 'text': {
-        const font = registry.embedStandard(resolveStandardFont(obj.fontFamily, obj.bold, obj.italic))
-        drawTextObject(page, obj, font, cropBox, pageRotation)
+        if (!obj.text) break
+        const face = await resolveTextFace(obj.text, obj.fontFamily, obj.bold, obj.italic, registry, options)
+        drawTextObject(page, obj, face, cropBox, pageRotation)
         break
       }
       case 'image':
@@ -342,7 +432,8 @@ async function drawWatermark(
   page: PDFPage,
   config: WatermarkConfig,
   registry: FontRegistry,
-  imageRegistry: ImageRegistry
+  imageRegistry: ImageRegistry,
+  options: ExportOptions
 ): Promise<void> {
   const cropBox = page.getCropBox()
   const pageRotation = normalizeRotation(page.getRotation().angle)
@@ -352,7 +443,7 @@ async function drawWatermark(
 
   if (config.type === 'text') {
     if (!config.text) return
-    const font = registry.embedStandard(resolveStandardFont(config.fontFamily, false, false))
+    const face = await resolveTextFace(config.text, config.fontFamily, false, false, registry, options)
     const syntheticObj: TextObject = {
       id: '__watermark__',
       pageIndex: 0,
@@ -374,7 +465,7 @@ async function drawWatermark(
       align: 'left',
       lineHeight: 1.2
     }
-    drawTextObject(page, syntheticObj, font, cropBox, pageRotation)
+    drawTextObject(page, syntheticObj, face, cropBox, pageRotation)
     return
   }
 
@@ -507,7 +598,8 @@ export async function exportPdf(
   importedSources: Record<string, Uint8Array>,
   formValues: FormField[],
   flatten: boolean,
-  watermark: WatermarkConfig | null
+  watermark: WatermarkConfig | null,
+  options: ExportOptions = {}
 ): Promise<ExportResult> {
   let originalDoc: PDFDocument
   try {
@@ -537,13 +629,13 @@ export async function exportPdf(
     for (const [pageIndexKey, objects] of Object.entries(objectsByPage)) {
       const pageIndex = Number(pageIndexKey)
       if (pageIndex < 0 || pageIndex >= pageCount || objects.length === 0) continue
-      await drawObjectsForPage(originalDoc.getPage(pageIndex), objects, registry, imageRegistry)
+      await drawObjectsForPage(originalDoc.getPage(pageIndex), objects, registry, imageRegistry, options)
     }
 
     if (watermark?.enabled) {
       for (const pageIndex of watermark.pageIndices) {
         if (pageIndex < 0 || pageIndex >= pageCount) continue // range referenced a page no longer in this doc
-        await drawWatermark(originalDoc.getPage(pageIndex), watermark, registry, imageRegistry)
+        await drawWatermark(originalDoc.getPage(pageIndex), watermark, registry, imageRegistry, options)
       }
     }
 
@@ -566,14 +658,14 @@ export async function exportPdf(
   for (const [pageIndexKey, objects] of Object.entries(objectsByPage)) {
     const page = pageIndexToFreshPage.get(Number(pageIndexKey))
     if (!page || objects.length === 0) continue
-    await drawObjectsForPage(page, objects, registry, imageRegistry)
+    await drawObjectsForPage(page, objects, registry, imageRegistry, options)
   }
 
   if (watermark?.enabled) {
     for (const pageIndex of watermark.pageIndices) {
       const page = pageIndexToFreshPage.get(pageIndex)
       if (!page) continue // deleted, or otherwise not in this export — skip, same convention as buildPageMapping
-      await drawWatermark(page, watermark, registry, imageRegistry)
+      await drawWatermark(page, watermark, registry, imageRegistry, options)
     }
   }
 

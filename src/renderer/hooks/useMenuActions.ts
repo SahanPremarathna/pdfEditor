@@ -1,3 +1,4 @@
+import { platform } from '../platform'
 import { useEffect } from 'react'
 import { useHistoryStore } from '../core/history'
 import { useDocumentStore } from '../store/documentStore'
@@ -12,7 +13,7 @@ const OPEN_LAUNCH_PATH_PREFIX = 'file:openLaunchPath:'
  *  window.api.onRequestSaveBeforeClose wiring. */
 export function useMenuActions(): void {
   useEffect(() => {
-    return window.api.onMenuAction((action) => {
+    return platform().onMenuAction((action) => {
       if (action.startsWith(OPEN_RECENT_PREFIX)) {
         void useDocumentStore.getState().openPath(action.slice(OPEN_RECENT_PREFIX.length))
         return

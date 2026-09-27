@@ -40,3 +40,26 @@ export function getVisibleRange(
 
   return { start, end }
 }
+
+/**
+ * Index of the page under the "reading line" `probeOffset` px from the top of
+ * the content — the page a reader would call current. Pages are laid out
+ * back to back from 0 using `pageHeights` (gaps included by the caller).
+ * Clamps to the first/last page when the probe falls outside the content.
+ */
+export function pageAtOffset(pageHeights: number[], probeOffset: number): number {
+  if (pageHeights.length === 0) return -1
+  let offset = 0
+  for (let i = 0; i < pageHeights.length; i++) {
+    offset += pageHeights[i]
+    if (probeOffset < offset) return i
+  }
+  return pageHeights.length - 1
+}
+
+/** Top offset (px) of page `index` in a back-to-back layout of `pageHeights`. */
+export function offsetOfPage(pageHeights: number[], index: number): number {
+  let offset = 0
+  for (let i = 0; i < index && i < pageHeights.length; i++) offset += pageHeights[i]
+  return offset
+}

@@ -26,6 +26,20 @@ export interface SignatureRequest {
   y: number
 }
 
+export type ThemePreference = 'system' | 'light' | 'dark'
+export type Modal = 'shortcuts' | 'extract' | null
+
+const THEME_STORAGE_KEY = 'inkline:theme'
+
+function readStoredTheme(): ThemePreference {
+  try {
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_STORAGE_KEY) : null
+    return stored === 'light' || stored === 'dark' ? stored : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
 interface UiState {
   zoom: number
   fitWidth: boolean
@@ -49,6 +63,13 @@ interface UiState {
    *  activeTool for dragging) — a dedicated flag matches how `selectedId`/
    *  form-field-presence already independently drive RightPanel. */
   isWatermarkPanelOpen: boolean
+  /** Persisted per browser; 'system' follows prefers-color-scheme. */
+  theme: ThemePreference
+  /** The page (stable PageMeta.index) nearest the top of the viewport — kept
+   *  up to date by PageList's scroll handler, read by the status pill. */
+  currentPageId: number | null
+  isPagesPanelOpen: boolean
+  activeModal: Modal
   setZoom: (zoom: number) => void
   zoomIn: () => void
   zoomOut: () => void
@@ -62,6 +83,16 @@ interface UiState {
   setFlattenOnExport: (flatten: boolean) => void
   setWatermarkPanelOpen: (open: boolean) => void
   toggleWatermarkPanelOpen: () => void
+  setTheme: (theme: ThemePreference) => void
+  setCurrentPageId: (pageId: number | null) => void
+  setPagesPanelOpen: (open: boolean) => void
+  togglePagesPanelOpen: () => void
+  openModal: (modal: Exclude<Modal, null>) => void
+  closeModal: () => void
+}
+
+function isWideViewport(): boolean {
+  return typeof window === 'undefined' || typeof window.matchMedia !== 'function' || window.matchMedia('(min-width: 1024px)').matches
 }
 
 const clampZoom = (zoom: number): number => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom))
@@ -75,6 +106,11 @@ export const useUiStore = create<UiState>((set, get) => ({
   scrollToPageId: null,
   flattenOnExport: false,
   isWatermarkPanelOpen: false,
+  theme: readStoredTheme(),
+  currentPageId: null,
+  // Collapsed by default on narrow screens, where it overlays the page.
+  isPagesPanelOpen: isWideViewport(),
+  activeModal: null,
 
   setZoom: (zoom) => set({ zoom: clampZoom(zoom), fitWidth: false }),
   zoomIn: () => set({ zoom: clampZoom(get().zoom * ZOOM_STEP), fitWidth: false }),
@@ -88,5 +124,19 @@ export const useUiStore = create<UiState>((set, get) => ({
   clearScrollToPage: () => set({ scrollToPageId: null }),
   setFlattenOnExport: (flatten) => set({ flattenOnExport: flatten }),
   setWatermarkPanelOpen: (open) => set({ isWatermarkPanelOpen: open }),
-  toggleWatermarkPanelOpen: () => set((s) => ({ isWatermarkPanelOpen: !s.isWatermarkPanelOpen }))
+  toggleWatermarkPanelOpen: () => set((s) => ({ isWatermarkPanelOpen: !s.isWatermarkPanelOpen })),
+  setTheme: (theme) => {
+    try {
+      if (theme === 'system') localStorage.removeItem(THEME_STORAGE_KEY)
+      else localStorage.setItem(THEME_STORAGE_KEY, theme)
+    } catch {
+      // Storage blocked — the choice still applies for this session.
+    }
+    set({ theme })
+  },
+  setCurrentPageId: (pageId) => set({ currentPageId: pageId }),
+  setPagesPanelOpen: (open) => set({ isPagesPanelOpen: open }),
+  togglePagesPanelOpen: () => set((s) => ({ isPagesPanelOpen: !s.isPagesPanelOpen })),
+  openModal: (modal) => set({ activeModal: modal }),
+  closeModal: () => set({ activeModal: null })
 }))

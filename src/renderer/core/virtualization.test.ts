@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getVisibleRange } from './virtualization'
+import { getVisibleRange, offsetOfPage, pageAtOffset } from './virtualization'
 
 describe('getVisibleRange', () => {
   it('returns an empty range for an empty document', () => {
@@ -32,5 +32,31 @@ describe('getVisibleRange', () => {
 
   it('handles a single page taller than the viewport', () => {
     expect(getVisibleRange([3000], 1000, 800, 0)).toEqual({ start: 0, end: 1 })
+  })
+})
+
+describe('pageAtOffset', () => {
+  it('returns -1 for an empty document', () => {
+    expect(pageAtOffset([], 0)).toBe(-1)
+  })
+
+  it('finds the page containing the probe', () => {
+    expect(pageAtOffset([100, 200, 300], 0)).toBe(0)
+    expect(pageAtOffset([100, 200, 300], 99)).toBe(0)
+    expect(pageAtOffset([100, 200, 300], 100)).toBe(1)
+    expect(pageAtOffset([100, 200, 300], 450)).toBe(2)
+  })
+
+  it('clamps past either end', () => {
+    expect(pageAtOffset([100, 200], -50)).toBe(0)
+    expect(pageAtOffset([100, 200], 10_000)).toBe(1)
+  })
+})
+
+describe('offsetOfPage', () => {
+  it('sums the heights before the page', () => {
+    expect(offsetOfPage([100, 200, 300], 0)).toBe(0)
+    expect(offsetOfPage([100, 200, 300], 2)).toBe(300)
+    expect(offsetOfPage([100, 200, 300], 9)).toBe(600)
   })
 })

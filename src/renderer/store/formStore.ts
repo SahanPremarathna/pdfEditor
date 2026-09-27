@@ -1,3 +1,4 @@
+import { platform } from '../platform'
 import { create } from 'zustand'
 import { useDocumentStore } from './documentStore'
 import type { FormField } from '../../shared/types'
@@ -42,7 +43,7 @@ export const useFormStore = create<FormState>((set, get) => ({
     // patch bag, hence the cast (same pattern as objectStore.ts).
     set({ fields: fields.map((f) => (f.name === name ? ({ ...f, ...patch } as FormField) : f)) })
     useDocumentStore.getState().markDirty()
-    window.api.notifyDirty(true)
+    platform().notifyDirty(true)
   },
 
   reset: () => set({ fields: [] })

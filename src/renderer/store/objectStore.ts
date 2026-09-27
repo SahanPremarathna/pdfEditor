@@ -1,9 +1,10 @@
 import { create } from 'zustand'
 import type { BaseObject, ImageObject, PdfObject, TextObject } from '../../shared/types'
 import { useHistoryStore } from '../core/history'
-import { densifyZ, reorderZ, type ZDirection } from '../core/zOrder'
+import { densifyZ, nextZ, reorderZ, type ZDirection } from '../core/zOrder'
 
 const EMPTY_PAGE: PdfObject[] = []
+const DUPLICATE_OFFSET_PT = 12
 
 /**
  * `Partial<Omit<PdfObject, ...>>` would only keep BaseObject's shared keys
@@ -41,6 +42,9 @@ interface ObjectState {
   addObject: (obj: PdfObject) => void
   updateObject: (pageIndex: number, id: string, patch: PdfObjectPatch) => void
   removeObject: (pageIndex: number, id: string) => void
+  /** Copies an object (offset slightly, on top of its page) and selects the
+   *  copy. Returns the new id, or null if `id` doesn't exist. */
+  duplicateObject: (id: string) => string | null
 
   selectObject: (id: string | null) => void
   bringToFront: (pageIndex: number, id: string) => void
@@ -134,6 +138,27 @@ export const useObjectStore = create<ObjectState>((set, get) => ({
       selectedId: state.selectedId === id ? null : state.selectedId,
       activeEditingId: state.activeEditingId === id ? null : state.activeEditingId
     })
+  },
+
+  duplicateObject: (id) => {
+    const before = get().objectsByPage
+    const source = Object.values(before)
+      .flat()
+      .find((o) => o.id === id)
+    if (!source) return null
+
+    const existing = before[source.pageIndex] ?? EMPTY_PAGE
+    const copy: PdfObject = {
+      ...source,
+      id: crypto.randomUUID(),
+      x: source.x + DUPLICATE_OFFSET_PT,
+      y: source.y + DUPLICATE_OFFSET_PT,
+      z: nextZ(existing),
+      locked: false
+    }
+    const after = { ...before, [source.pageIndex]: [...existing, copy] }
+    commitObjectsByPage(set, before, after, { selectedId: copy.id })
+    return copy.id
   },
 
   selectObject: (id) => set({ selectedId: id }),
