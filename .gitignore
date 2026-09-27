@@ -6,3 +6,5 @@ dist-electron
 *.log
 .env
 .DS_Store
+test-results/
+playwright-report/

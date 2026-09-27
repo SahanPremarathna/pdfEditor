@@ -16,6 +16,8 @@ export default defineConfig({
         '@renderer': resolve('src/renderer')
       }
     },
+    // Shares public/ (bundled fonts, icons) with the web build.
+    publicDir: resolve('public'),
     plugins: [react(), tailwindcss()]
   }
 })
