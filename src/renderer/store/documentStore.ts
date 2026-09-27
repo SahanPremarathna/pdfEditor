@@ -187,7 +187,7 @@ async function finishOpening(
     isEncrypted,
     passwordPrompt: null,
     notice: isEncrypted
-      ? 'Unlocked for viewing. Encrypted PDFs can be annotated, but Inkline cannot save them.'
+      ? 'Unlocked for viewing. Encrypted PDFs can be annotated, but TrueFreePDF cannot save them.'
       : null
   })
   platform().notifyDirty(false)

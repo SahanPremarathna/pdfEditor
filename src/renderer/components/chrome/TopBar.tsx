@@ -108,7 +108,7 @@ function MoreMenu(): JSX.Element {
           </label>
           <div className="my-1 h-px bg-slate-900/10 dark:bg-white/10" />
           <button type="button" className="menu-item" onClick={() => run(() => openModal('support'))}>
-            <Heart size={16} className="text-rose-500" /> Support Inkline
+            <Heart size={16} className="text-rose-500" /> Support TrueFreePDF
           </button>
           <button type="button" className="menu-item" onClick={() => run(() => openModal('shortcuts'))}>
             <Keyboard size={16} /> Keyboard shortcuts
@@ -116,7 +116,7 @@ function MoreMenu(): JSX.Element {
           </button>
           {canInstall && (
             <button type="button" className="menu-item" onClick={() => run(install)}>
-              <Download size={16} /> Install Inkline app
+              <Download size={16} /> Install TrueFreePDF app
             </button>
           )}
           {hasDoc && (
@@ -173,7 +173,9 @@ export default function TopBar(): JSX.Element {
       {/* Brand + document */}
       <div className="glass pointer-events-auto flex h-12 min-w-0 items-center gap-2 rounded-2xl pl-2 pr-3">
         <Logo className="h-8 w-8 shrink-0" />
-        <span className="hidden text-[15px] font-semibold tracking-tight sm:inline">Inkline</span>
+        <span className="hidden text-[15px] font-bold tracking-tight sm:inline">
+          TrueFree<span className="text-gradient">PDF</span>
+        </span>
         {hasDoc && (
           <>
             <Divider />
@@ -253,7 +255,7 @@ export default function TopBar(): JSX.Element {
           type="button"
           onClick={() => openModal('support')}
           className="group flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-300"
-          aria-label="Support Inkline"
+          aria-label="Support TrueFreePDF"
         >
           <span className="bg-kofi-gradient flex h-6 w-6 animate-heartbeat-once items-center justify-center rounded-lg text-white shadow-md shadow-rose-500/30 transition group-hover:scale-110">
             <Heart size={13} className="fill-current" />

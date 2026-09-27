@@ -1,6 +1,6 @@
 /**
  * Donation / support settings, read from build-time env vars (see
- * .env.example). Inkline is free — these only power the optional
+ * .env.example). TrueFreePDF is free — these only power the optional
  * "Support on Ko-fi" links. Ko-fi is an outgoing link in a new tab; its
  * embeddable widget is deliberately not used (it loads from a CDN).
  */
@@ -34,7 +34,7 @@ export const MAKER_NAME = import.meta.env.VITE_MAKER_NAME?.trim() || null
 export const REPO_URL = httpsUrl(import.meta.env.VITE_REPO_URL)
 
 if (!KOFI_URL && import.meta.env.DEV) {
-  console.warn('[Inkline] VITE_KOFI_URL is not set (or not a https://ko-fi.com link) — donate buttons fall back to "Share".')
+  console.warn('[TrueFreePDF] VITE_KOFI_URL is not set (or not a https://ko-fi.com link) — donate buttons fall back to "Share".')
 }
 
 /** The public address people share — the running site itself. */

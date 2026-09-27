@@ -34,3 +34,10 @@
   for = "/sw.js"
   [headers.values]
     Cache-Control = "no-cache"
+
+# One canonical address: www → apex (both must be added as domains in Netlify).
+[[redirects]]
+  from = "https://www.truefreepdf.com/*"
+  to = "https://truefreepdf.com/:splat"
+  status = 301
+  force = true

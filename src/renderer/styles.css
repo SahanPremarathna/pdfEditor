@@ -6,25 +6,25 @@
 
 /* Bundled Indic faces for on-screen object text — same files export embeds. */
 @font-face {
-  font-family: "Inkline Noto Sinhala";
+  font-family: "TrueFreePDF Noto Sinhala";
   src: url("/fonts/NotoSansSinhala-Regular.ttf") format("truetype");
   font-weight: 100 600;
   font-display: swap;
 }
 @font-face {
-  font-family: "Inkline Noto Sinhala";
+  font-family: "TrueFreePDF Noto Sinhala";
   src: url("/fonts/NotoSansSinhala-Bold.ttf") format("truetype");
   font-weight: 700 900;
   font-display: swap;
 }
 @font-face {
-  font-family: "Inkline Noto Tamil";
+  font-family: "TrueFreePDF Noto Tamil";
   src: url("/fonts/NotoSansTamil-Regular.ttf") format("truetype");
   font-weight: 100 600;
   font-display: swap;
 }
 @font-face {
-  font-family: "Inkline Noto Tamil";
+  font-family: "TrueFreePDF Noto Tamil";
   src: url("/fonts/NotoSansTamil-Bold.ttf") format("truetype");
   font-weight: 700 900;
   font-display: swap;

@@ -1,4 +1,4 @@
-# Inkline — working agreement
+# TrueFreePDF — working agreement
 
 ## Commands
 - `npm run dev` — web app (Vite) with HMR at http://localhost:5173

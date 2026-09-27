@@ -1,7 +1,7 @@
 {
   "name": "inkline",
   "version": "0.1.0",
-  "description": "Inkline — a fast, private PDF editor for the web (and desktop)",
+  "description": "TrueFreePDF — a genuinely free, private PDF editor for the web (and desktop)",
   "main": "./out/main/index.js",
   "author": "",
   "private": true,
@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "com.inkline.app",
-    "productName": "Inkline",
+    "productName": "TrueFreePDF",
     "directories": {
       "output": "release"
     },

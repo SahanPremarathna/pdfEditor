@@ -1,7 +1,7 @@
 import { Check, Coffee, Share2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { KOFI_URL } from '../../config/support'
-import { rememberSupport, shareInkline } from './supportActions'
+import { rememberSupport, shareApp } from './supportActions'
 
 /** Confetti pieces: fixed trajectories as static classes (no inline styles). */
 const CONFETTI = [
@@ -24,7 +24,7 @@ interface KofiButtonProps {
 
 /**
  * "Support on Ko-fi" — an outgoing link in a new tab, with a small confetti
- * burst. Without a configured Ko-fi URL it becomes a "Share Inkline" button,
+ * burst. Without a configured Ko-fi URL it becomes a "Share TrueFreePDF" button,
  * which is still a real way to help.
  */
 export default function KofiButton({ size = 'md', label = 'Support on Ko-fi', className = '', onSupport }: KofiButtonProps): JSX.Element {
@@ -52,13 +52,13 @@ export default function KofiButton({ size = 'md', label = 'Support on Ko-fi', cl
         type="button"
         className={`bg-accent-gradient ${base}`}
         onClick={() =>
-          void shareInkline().then((outcome) => {
+          void shareApp().then((outcome) => {
             if (outcome === 'copied') setShareState('copied')
           })
         }
       >
         {shareState === 'copied' ? <Check size={18} /> : <Share2 size={18} />}
-        {shareState === 'copied' ? 'Link copied!' : 'Share Inkline'}
+        {shareState === 'copied' ? 'Link copied!' : 'Share TrueFreePDF'}
       </button>
     )
   }

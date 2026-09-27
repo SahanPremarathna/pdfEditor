@@ -9,7 +9,7 @@ const ROWS = [
   'Works offline'
 ]
 
-/** "Free on the surface? Not here." — Inkline against the typical
+/** "Free on the surface? Not here." — TrueFreePDF against the typical
  *  free-until-you-export PDF site. Deliberately names no competitor. */
 export default function FreeForeverSection(): JSX.Element {
   return (
@@ -22,7 +22,7 @@ export default function FreeForeverSection(): JSX.Element {
           Free on the surface? <span className="text-gradient">Not here.</span>
         </h2>
         <p className="mx-auto mt-2 max-w-lg text-sm text-slate-600 dark:text-slate-300">
-          Lots of "free" PDF editors let you do all the work, then ask for money at the download button. Inkline never will.
+          Lots of "free" PDF editors let you do all the work, then ask for money at the download button. TrueFreePDF never will.
         </p>
       </div>
 
@@ -36,7 +36,7 @@ export default function FreeForeverSection(): JSX.Element {
           </div>
           <div className="relative flex items-end justify-center px-3 pb-3 pt-4 sm:w-36">
             <div className="bg-accent-gradient absolute inset-x-1.5 top-1.5 bottom-0 rounded-t-2xl opacity-[0.14]" />
-            <span className="relative text-sm font-bold text-ink-700 dark:text-ink-200">Inkline</span>
+            <span className="relative text-sm font-bold text-ink-700 dark:text-ink-200">TrueFreePDF</span>
           </div>
 
           {ROWS.map((row, i) => {

@@ -44,7 +44,7 @@ export default function SupportNudge(): JSX.Element | null {
 
   return (
     <aside
-      aria-label="Support Inkline"
+      aria-label="Support TrueFreePDF"
       className="glass-strong fixed bottom-16 right-3 z-40 w-[min(360px,calc(100vw-24px))] animate-slide-up overflow-hidden rounded-3xl p-4 max-md:bottom-[124px]"
     >
       <div className="bg-kofi-gradient pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-25 blur-2xl" />
@@ -58,7 +58,7 @@ export default function SupportNudge(): JSX.Element | null {
         <div className="min-w-0 pr-5">
           <p className="text-sm font-semibold">Saved — free, as always.</p>
           <p className="mt-0.5 text-[13px] leading-snug text-slate-600 dark:text-slate-300">
-            If Inkline saved you time, a coffee helps keep it free for everyone.
+            If TrueFreePDF saved you time, a coffee helps keep it free for everyone.
           </p>
         </div>
       </div>

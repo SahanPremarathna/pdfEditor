@@ -29,13 +29,13 @@ export function rememberSupport(): void {
 export type ShareOutcome = 'shared' | 'copied' | 'failed'
 
 /** Native share sheet where available (phones), otherwise copy the link. */
-export async function shareInkline(): Promise<ShareOutcome> {
+export async function shareApp(): Promise<ShareOutcome> {
   const url = shareUrl()
   const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> }
   if (nav.share && window.matchMedia?.('(pointer: coarse)').matches) {
     try {
       await nav.share({
-        title: 'Inkline — a genuinely free PDF editor',
+        title: 'TrueFreePDF — a genuinely free PDF editor',
         text: 'Edit, sign and fill PDFs for free — no sign-up, no watermark, no export paywall.',
         url
       })

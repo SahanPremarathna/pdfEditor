@@ -42,13 +42,13 @@ test('welcome page makes the free-forever promise and offers support', async ({ 
 test('support dialog: Ko-fi opens in a new tab, share copies the link', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.goto('/')
-  await page.getByRole('button', { name: 'Support Inkline' }).first().click()
-  const dialog = page.getByRole('dialog', { name: 'Support Inkline' })
+  await page.getByRole('button', { name: 'Support TrueFreePDF' }).first().click()
+  const dialog = page.getByRole('dialog', { name: 'Support TrueFreePDF' })
   await expect(dialog.getByRole('heading', { name: /Really free/ })).toBeVisible()
   await page.waitForTimeout(600)
   await page.screenshot({ path: join(SHOTS, 'support-modal.png') })
 
-  await dialog.getByRole('button', { name: 'Share Inkline' }).click()
+  await dialog.getByRole('button', { name: 'Share TrueFreePDF' }).click()
   await expect(dialog.getByText('Link copied!')).toBeVisible()
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('http://localhost:4173/')
 
@@ -69,7 +69,7 @@ test('thank-you card appears after an export and can be switched off for good', 
   await forceInputFallback(page)
   await page.goto('/')
   await openFixture(page)
-  const card = page.getByRole('complementary', { name: 'Support Inkline' })
+  const card = page.getByRole('complementary', { name: 'Support TrueFreePDF' })
   await expect(card).toHaveCount(0)
 
   await saveOnce(page)

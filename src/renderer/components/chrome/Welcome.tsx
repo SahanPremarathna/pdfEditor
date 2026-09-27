@@ -201,7 +201,7 @@ export default function Welcome(): JSX.Element {
             <span className="bg-kofi-gradient flex h-7 w-7 items-center justify-center rounded-full text-white shadow-md shadow-rose-500/30 transition group-hover:rotate-[-8deg] group-hover:scale-110">
               <Coffee size={15} strokeWidth={2.3} />
             </span>
-            Love Inkline? <span className="font-semibold text-rose-600 dark:text-rose-300">Buy me a coffee</span>
+            Love TrueFreePDF? <span className="font-semibold text-rose-600 dark:text-rose-300">Buy me a coffee</span>
           </a>
         ) : (
           <button
@@ -209,7 +209,7 @@ export default function Welcome(): JSX.Element {
             onClick={() => openModal('support')}
             className="glass -mt-4 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-rose-600 dark:text-rose-300"
           >
-            <Heart size={14} className="fill-current" /> Support Inkline
+            <Heart size={14} className="fill-current" /> Support TrueFreePDF
           </button>
         )}
 
@@ -242,7 +242,7 @@ export default function Welcome(): JSX.Element {
             <span>Free forever</span>
             <span aria-hidden="true">·</span>
             <button type="button" className="font-medium text-rose-600 hover:underline dark:text-rose-300" onClick={() => openModal('support')}>
-              Support Inkline
+              Support TrueFreePDF
             </button>
           </p>
           <p className="flex items-center gap-1.5">

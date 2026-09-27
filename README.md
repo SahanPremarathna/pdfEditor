@@ -1,4 +1,6 @@
-# Inkline — PDF editor for the web
+# TrueFreePDF — the PDF editor that's actually free
+
+**Live at [truefreepdf.com](https://truefreepdf.com)**
 
 Edit, sign, annotate and rearrange PDFs in the browser. Files are processed entirely on the user's device: nothing is uploaded, there's no backend, and the app works offline once it has loaded (it's an installable PWA).
 
@@ -16,7 +18,7 @@ Edit, sign, annotate and rearrange PDFs in the browser. Files are processed enti
 
 ## Free forever, supported by donations
 
-Inkline has no paywall, no export limits, no watermark on your files and no account. It's funded by voluntary donations on **Ko-fi**. The app asks gently and rarely:
+TrueFreePDF has no paywall, no export limits, no watermark on your files and no account. It's funded by voluntary donations on **Ko-fi**. The app asks gently and rarely:
 - a **Support** button in the top bar
 - a support section on the landing page
 - a small thank-you card after a save, at most once a week. It stays quiet for 60 days after someone supports, and has a "Don't show again" option.
@@ -33,10 +35,9 @@ Configure it with build-time environment variables (see `.env.example`):
 
 Where to set them:
 - **Local:** create `.env.local`.
-- **Netlify or Vercel:** add them in the site's environment variables.
-- **GitHub Pages:** add them under *Settings → Secrets and variables → Actions → Variables*.
+- **Netlify:** *Site configuration → Environment variables*, then redeploy.
 
-If no valid Ko-fi link is available, the donate buttons fall back to "Share Inkline".
+If no valid Ko-fi link is available, the donate buttons fall back to "Share TrueFreePDF".
 
 ## Develop
 
@@ -48,23 +49,35 @@ npm run typecheck
 npm run test:e2e     # builds, serves and drives the app in Chrome
 ```
 
-## Build and host
+## Build
 
 ```bash
 npm run build        # static site in dist/
 npm run preview      # check it locally at http://localhost:4173
 ```
 
-`dist/` is a plain static site, so any static host can serve it. The repo includes ready-made configs:
+## Deploy to truefreepdf.com (Netlify)
 
-| Host | How |
-|---|---|
-| **Netlify** | Connect the repo. `netlify.toml` sets the build command, `dist/` and the headers. |
-| **Vercel** | Import the repo. `vercel.json` sets the build, output and headers. |
-| **GitHub Pages** | Settings → Pages → Source: *GitHub Actions*. `.github/workflows/deploy-pages.yml` builds with the right base path on every push to `main`. |
-| **Anything else** | Upload `dist/`. To serve from a sub-path, build with `VITE_BASE=/sub/path/ npm run build`. |
+`netlify.toml` already sets the build command, the `dist/` folder, security and cache headers, and a `www` → apex redirect.
 
-Serve it over HTTPS (every host above does this). Service workers, and with them offline mode and install, only work on HTTPS or `localhost`.
+1. **Push the repo to GitHub.**
+2. **Create the site in Netlify:** *Add new site → Import an existing project → GitHub*, then pick this repo. Leave the build settings as they are (`netlify.toml` supplies them) and deploy. You'll get a temporary `*.netlify.app` address; check that it works.
+3. **Add the domain:** *Domain management → Add a domain → `truefreepdf.com`*. Add `www.truefreepdf.com` too, and make **`truefreepdf.com` the primary domain**.
+4. **Point DNS at Netlify.** Pick **one** of these at the registrar where you bought the domain:
+   - **Easiest: use Netlify DNS.** In Netlify choose *Set up Netlify DNS*, then at your registrar replace the nameservers with the four Netlify shows (`dns1.p0X.nsone.net` …).
+   - **Keep your registrar's DNS:** add these records:
+
+     | Type | Name | Value |
+     |---|---|---|
+     | `A` | `@` | `75.2.60.5` |
+     | `CNAME` | `www` | `<your-site-name>.netlify.app` |
+
+   DNS changes can take anywhere from a few minutes to 24–48 hours to spread.
+5. **HTTPS:** Netlify issues a free Let's Encrypt certificate once DNS resolves. Check it under *Domain management → HTTPS*, and turn on *Force HTTPS* if it isn't already. Offline mode and "Install app" need HTTPS.
+
+After that, every push to `main` redeploys automatically. `.github/workflows/ci.yml` separately runs the typecheck, tests and build on each push and pull request.
+
+To regenerate the social-preview image (`public/og-image.png`, shown when the link is shared) after changing the branding, run `node scripts/generate-og-image.mjs`. For the app icons, run `node scripts/generate-web-icons.mjs`.
 
 ## Desktop build (optional)
 

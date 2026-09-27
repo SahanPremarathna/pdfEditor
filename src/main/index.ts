@@ -15,7 +15,7 @@ let isDirty = false
 const OPEN_LAUNCH_PATH_PREFIX = 'file:openLaunchPath:'
 
 // Resolved once from this process's own launch argv (double-click a .pdf, or
-// "Open with" → Inkline). Exposed to the renderer via GET_LAUNCH_PATH,
+// "Open with" → TrueFreePDF). Exposed to the renderer via GET_LAUNCH_PATH,
 // pulled once on mount rather than pushed over MENU_ACTION, to sidestep the
 // startup race against the renderer's listener not being registered yet.
 const launchPdfPath = findLaunchPdfPath(process.argv)
@@ -109,7 +109,7 @@ function createWindow(): BrowserWindow {
 }
 
 // Windows file-association launches always start a fresh process — without
-// this lock, double-clicking a second .pdf while Inkline is already open
+// this lock, double-clicking a second .pdf while TrueFreePDF is already open
 // would spawn a whole second app instance instead of reusing the window.
 const gotSingleInstanceLock = app.requestSingleInstanceLock()
 

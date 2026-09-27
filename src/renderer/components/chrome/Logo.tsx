@@ -1,6 +1,6 @@
 import { useId } from 'react'
 
-/** The Inkline mark: a fountain-pen nib leaving an ink stroke. Kept in sync
+/** The TrueFreePDF mark: a fountain-pen nib leaving an ink stroke. Kept in sync
  *  with public/favicon.svg (which the PWA icons are rendered from). */
 export default function Logo({ className = '' }: { className?: string }): JSX.Element {
   const id = useId()

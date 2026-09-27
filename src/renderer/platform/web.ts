@@ -4,7 +4,7 @@ import type { OpenDialogResult } from '../../shared/types'
 import type { PlatformApi, RecentEntry } from './types'
 
 /*
- * Browser host for Inkline. Files come in through the File System Access API
+ * Browser host for TrueFreePDF. Files come in through the File System Access API
  * where the browser has it (Chromium: Save writes straight back to the file
  * the user opened) and through a plain <input type=file> + download
  * everywhere else (Firefox, Safari: Save downloads the edited PDF).

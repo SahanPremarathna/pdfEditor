@@ -12,7 +12,7 @@
 export const ON_SCREEN_FONT_FAMILIES = ['sans', 'serif', 'mono'] as const
 export type OnScreenFontFamily = (typeof ON_SCREEN_FONT_FAMILIES)[number]
 
-const INDIC_FALLBACKS = '"Inkline Noto Sinhala", "Inkline Noto Tamil"'
+const INDIC_FALLBACKS = '"TrueFreePDF Noto Sinhala", "TrueFreePDF Noto Tamil"'
 
 const FONT_FAMILY_CSS: Record<OnScreenFontFamily, string> = {
   sans: `Arial, Helvetica, "Liberation Sans", Arimo, ${INDIC_FALLBACKS}, sans-serif`,

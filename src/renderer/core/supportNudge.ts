@@ -1,5 +1,5 @@
 /**
- * When to (rarely) show the "enjoying Inkline? support it" card after an
+ * When to (rarely) show the "enjoying TrueFreePDF? support it" card after an
  * export. Pure — persistence lives in the component; this only decides.
  * Nothing here ever blocks or delays a save: the card appears after the
  * file is already written.

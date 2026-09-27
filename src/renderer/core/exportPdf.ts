@@ -59,7 +59,7 @@ import type {
  */
 export function toExportError(err: unknown): Error {
   if (err instanceof Error && /is encrypted/i.test(err.message)) {
-    return new Error("This PDF is password-protected and can't be saved by Inkline yet.")
+    return new Error("This PDF is password-protected and can't be saved by TrueFreePDF yet.")
   }
   return err instanceof Error ? err : new Error('Failed to export PDF')
 }

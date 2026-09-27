@@ -4,7 +4,7 @@ import { MAKER_NAME, REPO_URL } from '../../config/support'
 import { useUiStore } from '../../store/uiStore'
 import KofiButton from './KofiButton'
 import SupportIllustration from './SupportIllustration'
-import { rememberSupport, shareInkline } from './supportActions'
+import { rememberSupport, shareApp } from './supportActions'
 
 const PAYS_FOR = [
   { icon: Server, title: 'Hosting', body: 'Domain, bandwidth and keeping it fast.' },
@@ -39,7 +39,7 @@ function SupportDialog(): JSX.Element {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Support Inkline"
+        aria-label="Support TrueFreePDF"
         className="glass-strong relative flex max-h-[92vh] w-full max-w-lg animate-pop-in flex-col overflow-hidden rounded-[28px]"
       >
         <div className="bg-accent-gradient pointer-events-none absolute -top-32 left-1/2 h-64 w-[130%] -translate-x-1/2 rounded-full opacity-20 blur-3xl" />
@@ -51,10 +51,10 @@ function SupportDialog(): JSX.Element {
           <SupportIllustration className="mx-auto h-40 w-48" />
 
           <h2 className="mt-1 text-center text-2xl font-bold tracking-tight">
-            Inkline is free. <span className="text-gradient">Really free.</span>
+            TrueFreePDF is free. <span className="text-gradient">Really free.</span>
           </h2>
           <p className="mx-auto mt-3 max-w-md text-center text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-            {MAKER_NAME ? `Hi, I'm ${MAKER_NAME}. ` : 'Hi! '}I build Inkline on my own. There's no paywall at export, no watermark, no
+            {MAKER_NAME ? `Hi, I'm ${MAKER_NAME}. ` : 'Hi! '}I build TrueFreePDF on my own. There's no paywall at export, no watermark, no
             sign-up and nothing is uploaded — and it'll stay that way. If it saved you time or money, a coffee helps keep it
             running for everyone.
           </p>
@@ -84,10 +84,10 @@ function SupportDialog(): JSX.Element {
               <button
                 type="button"
                 className="btn btn-outline h-9"
-                onClick={() => void shareInkline().then((o) => setShared(o === 'failed' ? 'failed' : 'copied'))}
+                onClick={() => void shareApp().then((o) => setShared(o === 'failed' ? 'failed' : 'copied'))}
               >
                 {shared === 'copied' ? <Check size={15} className="text-emerald-500" /> : <Share2 size={15} />}
-                {shared === 'copied' ? 'Link copied!' : shared === 'failed' ? "Couldn't copy" : 'Share Inkline'}
+                {shared === 'copied' ? 'Link copied!' : shared === 'failed' ? "Couldn't copy" : 'Share TrueFreePDF'}
               </button>
               {REPO_URL && (
                 <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="btn btn-outline h-9">
