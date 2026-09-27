@@ -1,5 +1,6 @@
 import {
   Download,
+  Heart,
   Ellipsis,
   FileDown,
   FolderOpen,
@@ -106,6 +107,9 @@ function MoreMenu(): JSX.Element {
             />
           </label>
           <div className="my-1 h-px bg-slate-900/10 dark:bg-white/10" />
+          <button type="button" className="menu-item" onClick={() => run(() => openModal('support'))}>
+            <Heart size={16} className="text-rose-500" /> Support Inkline
+          </button>
           <button type="button" className="menu-item" onClick={() => run(() => openModal('shortcuts'))}>
             <Keyboard size={16} /> Keyboard shortcuts
             <span className="kbd ml-auto">?</span>
@@ -153,6 +157,7 @@ export default function TopBar(): JSX.Element {
   const setFitWidth = useUiStore((s) => s.setFitWidth)
   const theme = useUiStore((s) => s.theme)
   const setTheme = useUiStore((s) => s.setTheme)
+  const openModal = useUiStore((s) => s.openModal)
   const isWatermarkPanelOpen = useUiStore((s) => s.isWatermarkPanelOpen)
   const toggleWatermarkPanelOpen = useUiStore((s) => s.toggleWatermarkPanelOpen)
   const watermarkEnabled = useWatermarkStore((s) => s.config.enabled)
@@ -244,6 +249,17 @@ export default function TopBar(): JSX.Element {
 
       {/* File actions */}
       <div className="glass pointer-events-auto flex h-12 items-center gap-1 rounded-2xl px-1.5">
+        <button
+          type="button"
+          onClick={() => openModal('support')}
+          className="group flex h-9 items-center gap-1.5 rounded-xl px-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-500/10 dark:text-rose-300"
+          aria-label="Support Inkline"
+        >
+          <span className="bg-kofi-gradient flex h-6 w-6 animate-heartbeat-once items-center justify-center rounded-lg text-white shadow-md shadow-rose-500/30 transition group-hover:scale-110">
+            <Heart size={13} className="fill-current" />
+          </span>
+          <span className="hidden lg:inline">Support</span>
+        </button>
         <button
           type="button"
           className="icon-btn tip tip-bottom"

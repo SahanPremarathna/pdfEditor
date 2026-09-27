@@ -8,3 +8,6 @@ dist-electron
 .DS_Store
 test-results/
 playwright-report/
+.env.*
+!.env.example
+dist-e2e

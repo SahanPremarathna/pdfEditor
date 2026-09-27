@@ -27,7 +27,7 @@ export interface SignatureRequest {
 }
 
 export type ThemePreference = 'system' | 'light' | 'dark'
-export type Modal = 'shortcuts' | 'extract' | null
+export type Modal = 'shortcuts' | 'extract' | 'support' | null
 
 const THEME_STORAGE_KEY = 'inkline:theme'
 

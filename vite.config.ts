@@ -106,7 +106,7 @@ export default defineConfig({
       manifest: {
         name: 'Inkline — PDF Editor',
         short_name: 'Inkline',
-        description: 'Edit, sign, annotate and rearrange PDFs right in your browser. Files never leave your device.',
+        description: 'A genuinely free PDF editor — edit, sign, fill and rearrange PDFs in your browser. No sign-up, no watermark, no export paywall. Files never leave your device.',
         theme_color: '#0b0b1a',
         background_color: '#0b0b1a',
         display: 'standalone',

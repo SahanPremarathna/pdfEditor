@@ -9,6 +9,8 @@ import Welcome from './components/chrome/Welcome'
 import ExtractModal from './components/modals/ExtractModal'
 import PasswordModal from './components/modals/PasswordModal'
 import ShortcutsModal from './components/modals/ShortcutsModal'
+import SupportModal from './components/support/SupportModal'
+import SupportNudge from './components/support/SupportNudge'
 import PageList from './components/PageList'
 import RightPanel from './components/RightPanel'
 import SignaturePadModal from './components/SignaturePadModal'
@@ -103,6 +105,8 @@ export default function App(): JSX.Element {
       <PasswordModal />
       <ShortcutsModal />
       <ExtractModal />
+      <SupportModal />
+      <SupportNudge />
       <DropOverlay visible={isDraggingFile} />
     </div>
   )

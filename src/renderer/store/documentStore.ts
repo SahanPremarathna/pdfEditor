@@ -51,6 +51,9 @@ interface DocumentState {
   /** A dismissible, non-error informational message (e.g. "saved with forms
    *  flattened") — separate from `error` so the two never stomp each other. */
   notice: string | null
+  /** Successful saves/extractions this session — the support card listens
+   *  to it. Only ever incremented after the file has been written. */
+  completedExports: number
   openFile: () => Promise<void>
   openPath: (path: string) => Promise<void>
   /** A File from drag-and-drop or the welcome screen's drop zone. */
@@ -220,6 +223,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   passwordPrompt: null,
   error: null,
   notice: null,
+  completedExports: 0,
 
   openFile: async () => {
     set({ isLoading: true, error: null, notice: null })
@@ -302,7 +306,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const { bytes, forcedFlatten } = await exportCurrent(state)
       await platform().save(state.absolutePath, bytes)
-      set({ isSaving: false, isDirty: false, notice: forcedFlattenNotice(forcedFlatten) })
+      set((s) => ({
+        isSaving: false,
+        isDirty: false,
+        notice: forcedFlattenNotice(forcedFlatten),
+        completedExports: s.completedExports + 1
+      }))
       platform().notifyDirty(false)
     } catch (err) {
       set({ isSaving: false, error: errorMessage(err, 'Failed to save') })
@@ -322,6 +331,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           absolutePath: chosenPath,
           fileName: chosenPath.split(/[/\\]/).pop() ?? chosenPath,
           isSaving: false,
+          completedExports: state.completedExports + 1,
           isDirty: false,
           notice: forcedFlattenNotice(forcedFlatten)
         })
@@ -511,7 +521,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const { bytes } = await exportCurrent(state, pagesForExtraction(state.pages, pageIds))
       await downloadCopy(extractionFileName(state.fileName, numbers), bytes)
-      set({ isSaving: false })
+      set((s) => ({ isSaving: false, completedExports: s.completedExports + 1 }))
     } catch (err) {
       set({ isSaving: false, error: errorMessage(err, 'Failed to extract pages') })
     }

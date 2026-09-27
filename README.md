@@ -14,6 +14,30 @@ Edit, sign, annotate and rearrange PDFs in the browser. Files are processed enti
 - **Password-protected PDFs** can be unlocked for viewing and annotating. Saving encrypted files isn't supported.
 - **UI:** light and dark themes, and a responsive layout that works on phones and tablets.
 
+## Free forever, supported by donations
+
+Inkline has no paywall, no export limits, no watermark on your files and no account. It's funded by voluntary donations on **Ko-fi**. The app asks gently and rarely:
+- a **Support** button in the top bar
+- a support section on the landing page
+- a small thank-you card after a save. It only appears from the 2nd export, at most once a week, stays quiet for 60 days after someone supports, and has a "Don't show again" option.
+
+It never blocks or delays a save.
+
+Configure it with build-time environment variables (see `.env.example`):
+
+| Variable | Purpose |
+|---|---|
+| `VITE_KOFI_URL` | Your Ko-fi page, e.g. `https://ko-fi.com/yourname`. Powers every "Support on Ko-fi" button. |
+| `VITE_MAKER_NAME` | Optional. Shown as "Made with ♥ by …" and in the support note. |
+| `VITE_REPO_URL` | Optional. A public repo link that adds a "Star on GitHub" option. |
+
+Where to set them:
+- **Local:** create `.env.local`.
+- **Netlify or Vercel:** add them in the site's environment variables.
+- **GitHub Pages:** add them under *Settings → Secrets and variables → Actions → Variables*.
+
+If `VITE_KOFI_URL` isn't set, the donate buttons fall back to "Share Inkline".
+
 ## Develop
 
 ```bash

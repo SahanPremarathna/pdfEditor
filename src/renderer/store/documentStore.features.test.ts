@@ -215,3 +215,29 @@ describe('objectStore.duplicateObject', () => {
     expect(useObjectStore.getState().duplicateObject('nope')).toBeNull()
   })
 })
+
+describe('completedExports', () => {
+  it('counts successful saves, save-as and extractions only', async () => {
+    await openPdf(2)
+    const count = (): number => useDocumentStore.getState().completedExports
+    const start = count()
+
+    await useDocumentStore.getState().save()
+    expect(count()).toBe(start + 1)
+
+    api.saveAs.mockResolvedValueOnce(null) // cancelled dialog
+    await useDocumentStore.getState().saveAs()
+    expect(count()).toBe(start + 1)
+
+    api.saveAs.mockResolvedValueOnce('/tmp/copy.pdf')
+    await useDocumentStore.getState().saveAs()
+    expect(count()).toBe(start + 2)
+
+    api.save.mockRejectedValueOnce(new Error('disk full'))
+    await useDocumentStore.getState().save()
+    expect(count()).toBe(start + 2)
+
+    await useDocumentStore.getState().extractPages([0])
+    expect(count()).toBe(start + 3)
+  })
+})

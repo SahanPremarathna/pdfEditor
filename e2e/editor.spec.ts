@@ -1,10 +1,22 @@
-import { readFileSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
-import { expect, test, type Download, type Locator, type Page } from '@playwright/test'
-import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { expect, test } from '@playwright/test'
+import { PDFDocument } from 'pdf-lib'
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs'
-import type { TextItem } from 'pdfjs-dist/types/src/display/api'
+import {
+  clickAt,
+  deselect,
+  drag,
+  forceInputFallback,
+  LETTER,
+  makeFixturePdf,
+  openFixture,
+  pageText,
+  readPdf,
+  SHOTS,
+  standardFontDataUrl,
+  UNICODE_TEXT
+} from './helpers'
 
 /*
  * Drives the production build end to end: every tool, forms, watermark,
@@ -15,77 +27,6 @@ import type { TextItem } from 'pdfjs-dist/types/src/display/api'
  * <input type=file> + download fallback is exercised — that's the path
  * Firefox/Safari users get, and the one Playwright can automate.
  */
-
-const SHOTS = process.env.SHOTS_DIR ?? join('test-results', 'shots')
-const standardFontDataUrl = join(process.cwd(), 'node_modules', 'pdfjs-dist', 'standard_fonts') + '/'
-const LETTER = { width: 612, height: 792 }
-const UNICODE_TEXT = 'Hello “Inkline” → ශ්‍රී'
-
-async function makeFixturePdf(): Promise<Buffer> {
-  const doc = await PDFDocument.create()
-  const font = await doc.embedFont(StandardFonts.Helvetica)
-  for (const label of ['First page', 'Second page']) {
-    const page = doc.addPage([LETTER.width, LETTER.height])
-    page.drawText(label, { x: 72, y: 700, size: 24, font })
-  }
-  const form = doc.getForm()
-  const name = form.createTextField('full_name')
-  name.addToPage(doc.getPage(0), { x: 72, y: 600, width: 200, height: 24 })
-  const agree = form.createCheckBox('agree')
-  agree.addToPage(doc.getPage(0), { x: 72, y: 560, width: 16, height: 16 })
-  return Buffer.from(await doc.save())
-}
-
-async function readPdf(download: Download): Promise<Uint8Array> {
-  const path = await download.path()
-  return new Uint8Array(readFileSync(path))
-}
-
-async function pageText(bytes: Uint8Array, pageNumber: number): Promise<TextItem[]> {
-  const doc = await getDocument({ data: bytes.slice(), standardFontDataUrl }).promise
-  const page = await doc.getPage(pageNumber)
-  const content = await page.getTextContent()
-  return (content.items as TextItem[]).filter((i) => i.str.trim().length > 0)
-}
-
-async function forceInputFallback(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    const w = window as unknown as Record<string, unknown>
-    delete w.showOpenFilePicker
-    delete w.showSaveFilePicker
-  })
-}
-
-async function openFixture(page: Page, name = 'contract.pdf'): Promise<void> {
-  const chooser = page.waitForEvent('filechooser')
-  await page.getByRole('button', { name: /Open a PDF/ }).click()
-  await (await chooser).setFiles({ name, mimeType: 'application/pdf', buffer: await makeFixturePdf() })
-  await expect(page.getByRole('region', { name: 'Page 1' })).toBeVisible()
-}
-
-/** Page-relative drag in CSS px. */
-async function drag(page: Page, target: Locator, from: [number, number], to: [number, number]): Promise<void> {
-  const box = await target.boundingBox()
-  if (!box) throw new Error('target not visible')
-  await page.mouse.move(box.x + from[0], box.y + from[1])
-  await page.mouse.down()
-  const steps = 8
-  for (let i = 1; i <= steps; i++) {
-    await page.mouse.move(box.x + from[0] + ((to[0] - from[0]) * i) / steps, box.y + from[1] + ((to[1] - from[1]) * i) / steps)
-  }
-  await page.mouse.up()
-}
-
-async function clickAt(page: Page, target: Locator, x: number, y: number): Promise<void> {
-  const box = await target.boundingBox()
-  if (!box) throw new Error('target not visible')
-  await page.mouse.click(box.x + x, box.y + y)
-}
-
-async function deselect(page: Page): Promise<void> {
-  await page.keyboard.press('Escape')
-  await page.keyboard.press('Escape')
-}
 
 test.beforeAll(async () => {
   await mkdir(SHOTS, { recursive: true })

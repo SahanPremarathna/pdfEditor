@@ -1,5 +1,7 @@
 import {
+  Check,
   Clock,
+  Heart,
   FileText,
   FileUp,
   FormInput,
@@ -14,7 +16,13 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { getRecentEntries, platform, type RecentEntry } from '../../platform'
+import { MAKER_NAME } from '../../config/support'
 import { useDocumentStore } from '../../store/documentStore'
+import { useUiStore } from '../../store/uiStore'
+import FreeForeverSection from '../support/FreeForeverSection'
+import SupportBand from '../support/SupportBand'
+
+const PROMISES = ['100% free', 'No sign-up', 'No watermark', 'No uploads']
 
 /** Staggered entrance for the feature cards (static classes, one per card). */
 const STAGGER = [
@@ -118,6 +126,7 @@ export default function Welcome(): JSX.Element {
   const isLoading = useDocumentStore((s) => s.isLoading)
   const openFile = useDocumentStore((s) => s.openFile)
   const [isOver, setIsOver] = useState(false)
+  const openModal = useUiStore((s) => s.openModal)
 
   if (isLoading) {
     return (
@@ -143,6 +152,16 @@ export default function Welcome(): JSX.Element {
           <p className="max-w-xl text-base text-slate-600 sm:text-lg dark:text-slate-300">
             Add text, sign, highlight, fill forms, watermark and rearrange pages — right in your browser, even offline.
           </p>
+          <ul className="flex flex-wrap justify-center gap-2" aria-label="Always included">
+            {PROMISES.map((promise) => (
+              <li
+                key={promise}
+                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+              >
+                <Check size={13} strokeWidth={3} /> {promise}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <button
@@ -186,9 +205,25 @@ export default function Welcome(): JSX.Element {
           ))}
         </section>
 
-        <p className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <WifiOff size={13} /> Works offline once loaded · No sign-up · No uploads
-        </p>
+        <FreeForeverSection />
+        <SupportBand />
+
+        <footer className="flex flex-col items-center gap-2 text-center text-xs text-slate-500 dark:text-slate-400">
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+            <span className="inline-flex items-center gap-1">
+              Made with <Heart size={12} className="fill-rose-500 text-rose-500" /> {MAKER_NAME ? `by ${MAKER_NAME}` : 'for everyone'}
+            </span>
+            <span aria-hidden="true">·</span>
+            <span>Free forever</span>
+            <span aria-hidden="true">·</span>
+            <button type="button" className="font-medium text-rose-600 hover:underline dark:text-rose-300" onClick={() => openModal('support')}>
+              Support Inkline
+            </button>
+          </p>
+          <p className="flex items-center gap-1.5">
+            <WifiOff size={12} /> Works offline once loaded · Your files never leave this device
+          </p>
+        </footer>
       </div>
     </div>
   )

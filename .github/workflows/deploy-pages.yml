@@ -32,6 +32,10 @@ jobs:
       - run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
+          # Optional — set under Settings → Secrets and variables → Actions → Variables.
+          VITE_KOFI_URL: ${{ vars.VITE_KOFI_URL }}
+          VITE_MAKER_NAME: ${{ vars.VITE_MAKER_NAME }}
+          VITE_REPO_URL: ${{ vars.VITE_REPO_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
