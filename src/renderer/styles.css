@@ -268,7 +268,7 @@ body {
   .tip::after {
     content: attr(data-tip);
     @apply pointer-events-none absolute z-50 whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-[11px] font-medium
-      text-white opacity-0 shadow-lg transition-opacity delay-0 dark:bg-slate-100 dark:text-slate-900;
+      text-white opacity-0 shadow-lg ring-1 ring-white/15 transition-opacity delay-0 dark:bg-slate-100 dark:text-slate-900;
   }
   .tip:hover::after,
   .tip:focus-visible::after {

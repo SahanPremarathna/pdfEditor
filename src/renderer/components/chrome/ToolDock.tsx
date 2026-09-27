@@ -13,7 +13,7 @@ export default function ToolDock(): JSX.Element {
       aria-label="Tools"
       className="glass pointer-events-auto flex animate-slide-in-left items-center gap-0.5 rounded-2xl p-1.5 scroll-thin max-md:overflow-x-auto
         max-md:fixed max-md:inset-x-3 max-md:bottom-3 max-md:z-30 max-md:justify-between
-        md:flex-col"
+        md:relative md:z-10 md:flex-col"
     >
       {TOOL_GROUPS.map((group, gi) => (
         <Fragment key={gi}>
